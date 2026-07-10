@@ -27,17 +27,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const chatMessages = document.getElementById('chatMessages');
     const quickActions = document.getElementById('quickActions');
     const quickBtns = document.querySelectorAll('.quick-btn');
+    
+    // Tooltip Elements
+    const chatTooltip = document.getElementById('chatTooltip');
+    const tooltipClose = document.getElementById('tooltipClose');
 
     // Toggle Chat
     chatToggle.addEventListener('click', () => {
         chatContainer.classList.add('active');
         chatToggle.style.transform = 'scale(0)';
+        if (chatTooltip) {
+            chatTooltip.style.display = 'none';
+        }
     });
 
     chatClose.addEventListener('click', () => {
         chatContainer.classList.remove('active');
         chatToggle.style.transform = 'scale(1)';
     });
+
+    // Tooltip interaction
+    if (chatTooltip) {
+        chatTooltip.style.cursor = 'pointer'; // Make it clear it is clickable
+        chatTooltip.addEventListener('click', () => {
+            chatContainer.classList.add('active');
+            chatToggle.style.transform = 'scale(0)';
+            chatTooltip.style.display = 'none';
+        });
+    }
+
+    if (tooltipClose && chatTooltip) {
+        tooltipClose.addEventListener('click', (e) => {
+            e.stopPropagation(); // Prevent opening the chat when closing the tooltip
+            chatTooltip.style.display = 'none';
+        });
+    }
 
     // Send Message
     const sendMessage = async (text) => {
@@ -156,4 +180,70 @@ document.addEventListener('DOMContentLoaded', () => {
             sendMessage(query);
         });
     });
+
+    // Modal de Registro Logic
+    const registrationModal = document.getElementById('registrationModal');
+    const modalClose = document.getElementById('modalClose');
+    const registrationForm = document.getElementById('registrationForm');
+    const modalSuccess = document.getElementById('modalSuccess');
+    const regPlan = document.getElementById('regPlan');
+    const selectedPlanInput = document.getElementById('selectedPlanInput');
+    const choosePlanBtns = document.querySelectorAll('.plan-card button');
+
+    if (choosePlanBtns && registrationModal) {
+        choosePlanBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const planCard = btn.closest('.plan-card');
+                const planName = planCard.querySelector('h3').textContent;
+                
+                // Show form, hide success message, clear form fields first
+                registrationForm.style.display = 'block';
+                modalSuccess.classList.remove('active');
+                registrationForm.reset();
+
+                // Then pre-populate plan in the modal form
+                regPlan.value = planName;
+                selectedPlanInput.value = planName;
+                
+                // Show modal
+                registrationModal.classList.add('active');
+            });
+        });
+    }
+
+    if (modalClose && registrationModal) {
+        modalClose.addEventListener('click', () => {
+            registrationModal.classList.remove('active');
+        });
+        
+        // Close modal on click outside modal-content
+        registrationModal.addEventListener('click', (e) => {
+            if (e.target === registrationModal) {
+                registrationModal.classList.remove('active');
+            }
+        });
+    }
+
+    if (registrationForm && modalSuccess) {
+        registrationForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            
+            // Gather input values
+            const name = document.getElementById('regName').value;
+            const email = document.getElementById('regEmail').value;
+            const phone = document.getElementById('regPhone').value;
+            const plan = selectedPlanInput.value;
+            
+            console.log("Registro recibido:", { name, email, phone, plan });
+            
+            // Hide form and show success message
+            registrationForm.style.display = 'none';
+            modalSuccess.classList.add('active');
+            
+            // Auto close after 3 seconds
+            setTimeout(() => {
+                registrationModal.classList.remove('active');
+            }, 3000);
+        });
+    }
 });

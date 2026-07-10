@@ -183,6 +183,10 @@
 
     <!-- Chat Bot Widget -->
     <div class="chat-widget" id="chatWidget">
+        <div class="chat-tooltip" id="chatTooltip">
+            <span>¿En qué te ayudo hoy? 🤖</span>
+            <button class="tooltip-close" id="tooltipClose" aria-label="Cerrar sugerencia">×</button>
+        </div>
         <button class="chat-toggle" id="chatToggle">
             <span class="icon">💬</span>
         </button>
@@ -205,6 +209,40 @@
             <div class="chat-input-area">
                 <input type="text" id="chatInput" placeholder="Escribe tu mensaje..." aria-label="Mensaje">
                 <button id="chatSend" aria-label="Enviar">Enviar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Registro -->
+    <div class="modal-overlay" id="registrationModal">
+        <div class="modal-content glassmorphism">
+            <button class="modal-close" id="modalClose">&times;</button>
+            <h2>¡Comienza tu Transformación! 🚀</h2>
+            <p>Completa tus datos para registrarte en el plan seleccionado y un asesor se pondrá en contacto contigo.</p>
+            <form id="registrationForm">
+                <input type="hidden" id="selectedPlanInput" name="plan">
+                <div class="form-group">
+                    <label for="regPlan">Plan Seleccionado</label>
+                    <input type="text" id="regPlan" class="form-control" readonly>
+                </div>
+                <div class="form-group">
+                    <label for="regName">Nombre Completo</label>
+                    <input type="text" id="regName" class="form-control" placeholder="Ej. Juan Pérez" required>
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">Correo Electrónico</label>
+                    <input type="email" id="regEmail" class="form-control" placeholder="Ej. juan@correo.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="regPhone">Teléfono / WhatsApp</label>
+                    <input type="tel" id="regPhone" class="form-control" placeholder="Ej. 55-1234-5678" required>
+                </div>
+                <button type="submit" class="btn btn-primary btn-block">Confirmar Registro</button>
+            </form>
+            <div class="modal-success" id="modalSuccess">
+                <div class="success-icon">✓</div>
+                <h3>¡Registro Recibido!</h3>
+                <p>Tu solicitud ha sido enviada. Muy pronto nos pondremos en contacto contigo por WhatsApp o Correo.</p>
             </div>
         </div>
     </div>

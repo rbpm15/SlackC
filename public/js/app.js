@@ -86,10 +86,31 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // UI Helpers
+    const formatMarkdown = (text) => {
+        if (!text) return '';
+        // Replace escaped or literal newlines
+        let html = text.replace(/\\n/g, '\n');
+        
+        // Replace bold text: **text** -> <strong>text</strong>
+        html = html.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
+        
+        // Convert bullet points (* or -) into line breaks with nice bullets
+        html = html.replace(/(?:\s|^)\*\s/g, '<br>• ');
+        html = html.replace(/(?:\s|^)-\s/g, '<br>• ');
+        
+        // Replace remaining newlines with <br>
+        html = html.replace(/\n/g, '<br>');
+        
+        // Remove redundant leading line breaks
+        html = html.replace(/^(<br>)+/, '');
+        
+        return html;
+    };
+
     const addMessage = (text, className) => {
         const msgDiv = document.createElement('div');
         msgDiv.className = `message ${className}`;
-        msgDiv.innerHTML = text.replace(/\\n/g, '<br>');
+        msgDiv.innerHTML = className === 'bot-message' ? formatMarkdown(text) : text;
         chatMessages.appendChild(msgDiv);
         scrollToBottom();
     };

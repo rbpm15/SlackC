@@ -81,6 +81,7 @@ No escribas nada más, solo el JSON.`;
       dia:    parsed.dia    || 'Sin fecha',
       hora:   parsed.hora   || 'Sin hora',
       titulo: parsed.titulo || texto.slice(0, 80),
+      diaNum: parsed.diaNum || null,
     };
 
   } catch (err) {

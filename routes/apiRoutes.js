@@ -110,12 +110,15 @@ router.get('/dm/list', async (req, res) => {
   }
 });
 
-// GET /api/users — listar todos los usuarios conocidos (autores de mensajes)
+// GET /api/users — listar todos los usuarios conocidos (autores de mensajes o miembros de canales)
 router.get('/users', async (req, res) => {
   try {
-    const usuarios = await Message.find().distinct('autor');
-    // Filtrar falsy values o bots si es necesario
-    const filter = usuarios.filter(u => u && u !== 'SLC BOT');
+    const mUsers = await Message.find().distinct('autor');
+    const cUsers = await Channel.find().distinct('users');
+    // Combinar y quitar duplicados
+    const allUsers = [...new Set([...mUsers, ...cUsers])];
+    // Filtrar falsy values o bots
+    const filter = allUsers.filter(u => u && u !== 'SLC BOT' && u !== 'Usuario');
     res.json({ ok: true, data: filter });
   } catch (err) {
     console.error('[API] GET /users:', err.message);

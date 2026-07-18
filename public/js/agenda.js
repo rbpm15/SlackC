@@ -274,7 +274,30 @@ const AgendaModule = {
     const cards = document.querySelectorAll('.event-card');
     
     if (isSelected) {
-      // Si ya estaba seleccionado, des-seleccionar y mostrar todos
+      // Si ya estaba seleccionado, preguntar si quiere agregar un evento manual
+      const manual = prompt(`¿Agregar evento manualmente para el día ${diaNum}?\nEscribe la hora y el título (ej: 15:00 hrs Reunión de equipo):`);
+      if (manual && manual.trim() !== '') {
+        // Enviar al servidor como evento manual
+        const evt = {
+          titulo: manual.trim(),
+          dia: \`Día \${diaNum}\`,
+          diaNum: diaNum,
+          hora: 'Por definir', // Se podría extraer con regex pero por simplicidad
+          autor: 'Usuario (Manual)',
+          fuente: 'local'
+        };
+        // Emitir al socket si existe la función, o agregarlo localmente
+        if (typeof socket !== 'undefined') {
+          socket.emit('nuevo_mensaje', { 
+            texto: \`Evento manual: \${manual} el día \${diaNum}\`, 
+            channelId: 'agenda', 
+            autor: 'Sistema' 
+          });
+        }
+      }
+      
+      // Quitar selección y mostrar todos
+      cell.classList.remove('selected-day');
       cards.forEach(c => c.style.display = 'block');
     } else {
       // Seleccionar este y filtrar

@@ -203,7 +203,36 @@ function applyFormatting(prefix, suffix) {
 document.getElementById('btnFormatBold')?.addEventListener('click', () => applyFormatting('*', '*'));
 document.getElementById('btnFormatItalic')?.addEventListener('click', () => applyFormatting('_', '_'));
 document.getElementById('btnFormatCode')?.addEventListener('click', () => applyFormatting('\`\`\`\n', '\n\`\`\`'));
-document.getElementById('btnEmoji')?.addEventListener('click', () => applyFormatting('😊', ''));
+// Toggle Emoji Picker
+const btnEmoji = document.getElementById('btnEmoji');
+const emojiPicker = document.getElementById('emojiPicker');
+
+btnEmoji?.addEventListener('click', (e) => {
+  e.stopPropagation();
+  if (emojiPicker) {
+    const isHidden = emojiPicker.style.display === 'none' || !emojiPicker.style.display;
+    emojiPicker.style.display = isHidden ? 'grid' : 'none';
+  }
+});
+
+// Click emoji button
+emojiPicker?.addEventListener('click', (e) => {
+  const btn = e.target.closest('.emoji-picker-btn');
+  if (btn) {
+    const emoji = btn.getAttribute('data-emoji');
+    if (emoji) {
+      applyFormatting(emoji, '');
+      emojiPicker.style.display = 'none';
+    }
+  }
+});
+
+// Close when clicking outside
+document.addEventListener('click', (e) => {
+  if (emojiPicker && !emojiPicker.contains(e.target) && e.target !== btnEmoji) {
+    emojiPicker.style.display = 'none';
+  }
+});
 
 /* ════════════════════════════════════════════════════════════════
    ENVIAR MENSAJE

@@ -1,0 +1,291 @@
+/* ═══════════════════════════════════════════════════════════════
+   agenda.css  —  Estilos para el panel lateral de agenda de eventos
+═══════════════════════════════════════════════════════════════ */
+
+.agenda-panel {
+  width: var(--agenda-w);
+  min-width: var(--agenda-w);
+  display: flex;
+  flex-direction: column;
+  background: var(--agenda-bg);
+  border-left: 1px solid var(--agenda-border);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.agenda-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 1px solid var(--agenda-border);
+  flex-shrink: 0;
+}
+
+.agenda-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-main);
+}
+
+.agenda-date {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+
+.agenda-count {
+  font-size: 12px;
+  font-weight: 700;
+  background: #E8EAF6;
+  color: #3949AB;
+  padding: 2px 10px;
+  border-radius: 12px;
+  white-space: nowrap;
+}
+
+/* Integration bar */
+.integration-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 16px;
+  border-bottom: 1px solid var(--agenda-border);
+  background: var(--bg-secondary);
+  flex-shrink: 0;
+}
+
+.integration-dot {
+  width: 8px; height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.integration-dot.local  { background: #2EB67D; box-shadow: 0 0 0 2px rgba(46,182,125,0.2); }
+.integration-dot.n8n    { background: #FF6B35; box-shadow: 0 0 0 2px rgba(255,107,53,0.2); }
+
+.integration-status-text { font-size: 12px; color: var(--text-light); }
+
+/* Agenda body */
+.agenda-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px;
+}
+
+.agenda-body::-webkit-scrollbar { width: 4px; }
+.agenda-body::-webkit-scrollbar-thumb { background: #DDD; border-radius: 4px; }
+
+/* Empty state */
+.agenda-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  height: 100%;
+  color: var(--text-light);
+  gap: 8px;
+}
+.agenda-empty-icon { font-size: 48px; }
+.agenda-empty p { font-size: 14px; font-weight: 600; color: var(--text-main); }
+.agenda-empty small { font-size: 12px; color: var(--text-light); line-height: 1.6; }
+.agenda-empty em { color: #3949AB; font-style: normal; }
+
+/* Event card */
+.event-card {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-left: 4px solid #3949AB;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  transition: box-shadow 0.2s, border-color 0.2s, background 0.5s;
+}
+.event-card:hover { box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+
+/* Flash verde al aparecer */
+.event-card.flash-new {
+  background: #E8F5E9 !important;
+  border-color: #43A047;
+  border-left-color: #43A047;
+}
+
+.event-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 8px;
+}
+
+.event-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-main);
+  line-height: 1.4;
+  flex: 1;
+  word-break: break-word;
+}
+
+.event-card-delete {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--text-light);
+  font-size: 18px;
+  line-height: 1;
+  padding: 0 2px;
+  border-radius: 4px;
+  transition: color 0.1s, background 0.1s;
+}
+.event-card-delete:hover { color: #E01E5A; background: var(--bg-secondary); }
+
+.event-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.event-tag {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+}
+.event-tag.day  { background: #E8EAF6; color: #3949AB; }
+.event-tag.time { background: #E8F5E9; color: #2E7D32; }
+.event-tag.src  { background: #FFF3E0; color: #E65100; }
+
+.event-card-footer {
+  margin-top: 8px;
+  font-size: 11px;
+  color: #999;
+}
+
+/* Source: n8n badge */
+.source-n8n {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  background: #FF6B35;
+  color: white;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* Tags de eventos */
+.event-tag.day-tag   { background: #E8EAF6; color: #3949AB; }
+.event-tag.time-tag  { background: #E8F5E9; color: #2E7D32; }
+.event-tag.src-local { background: #EDE7F6; color: #6A1B9A; }
+.event-tag.src-n8n   { background: #FF6B35; color: white; }
+.event-tag.autor-tag { background: #FFF3E0; color: #E65100; }
+
+/* ── Chatbot Panel (Sidebar fallback/toggle) ─────────────────────── */
+.chatbot-panel {
+  width: var(--agenda-w);
+  min-width: var(--agenda-w);
+  display: flex;
+  flex-direction: column;
+  background: var(--agenda-bg);
+  border-left: 1px solid var(--agenda-border);
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.chatbot-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 12px;
+}
+
+.chatbot-close-btn {
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: #696969;
+}
+.chatbot-close-btn:hover { color: var(--text-main); }
+
+.chatbot-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 0 20px 20px 20px;
+  text-align: center;
+}
+
+.chatbot-icon-wrap {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 20px;
+}
+.chatbot-logo-img { width: 100%; height: 100%; }
+
+.chatbot-title {
+  font-size: 20px;
+  font-weight: 900;
+  color: var(--text-main);
+  margin-bottom: 12px;
+}
+
+.chatbot-desc {
+  font-size: 14px;
+  color: var(--text-light);
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.chatbot-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  margin-bottom: 30px;
+}
+
+.chatbot-action-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.chatbot-action-btn:hover {
+  background: var(--bg-secondary);
+  border-color: var(--border-color);
+}
+
+.chatbot-btn-icon { font-size: 18px; }
+
+.chatbot-upgrade-btn {
+  width: 100%;
+  padding: 12px;
+  background: #2563EB;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  margin-bottom: 16px;
+  transition: background 0.2s;
+}
+.chatbot-upgrade-btn:hover { background: #1D4ED8; }
+
+.chatbot-link {
+  font-size: 13px;
+  color: #2563EB;
+  text-decoration: none;
+}
+.chatbot-link:hover { text-decoration: underline; }

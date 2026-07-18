@@ -1,0 +1,88 @@
+/* ═══════════════════════════════════════════════════════════════
+   input.css  —  Estilos para el área de redacción de mensajes
+═══════════════════════════════════════════════════════════════ */
+
+.input-area {
+  border-top: 1px solid var(--chat-border);
+  padding: 12px 20px 16px;
+  flex-shrink: 0;
+  background: var(--chat-bg);
+}
+
+.input-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 6px 10px 4px;
+  border: 1px solid var(--chat-border);
+  border-bottom: none;
+  border-radius: var(--input-radius) var(--input-radius) 0 0;
+  background: var(--bg-primary);
+}
+
+.toolbar-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 4px;
+  color: var(--text-light);
+  font-size: 13px;
+  transition: background 0.1s, color 0.1s;
+  min-width: 28px;
+  display: flex; align-items: center; justify-content: center;
+}
+.toolbar-btn:hover { background: var(--bg-secondary); color: var(--text-main); }
+
+.toolbar-divider {
+  width: 1px;
+  height: 18px;
+  background: var(--border-color);
+  margin: 0 4px;
+}
+
+.input-box-wrap {
+  display: flex;
+  align-items: flex-end;
+  border: 1px solid var(--chat-border);
+  border-top: 1px solid var(--border-color);
+  border-radius: 0 0 var(--input-radius) var(--input-radius);
+  background: var(--bg-primary);
+  padding: 8px 8px 8px 14px;
+  gap: 8px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.input-box-wrap:focus-within {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 2px rgba(37,99,235,0.15);
+}
+
+.chat-input {
+  flex: 1;
+  border: none;
+  outline: none;
+  resize: none;
+  font-family: var(--font-main);
+  font-size: 15px;
+  color: var(--text-main);
+  line-height: 1.5;
+  background: transparent;
+  max-height: 160px;
+  overflow-y: auto;
+}
+.chat-input::placeholder { color: var(--text-light); }
+
+.send-btn {
+  background: #2563EB;
+  border: none;
+  border-radius: 6px;
+  color: white;
+  width: 34px; height: 34px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s, transform 0.1s;
+}
+.send-btn:hover:not(:disabled) { background: #1D4ED8; }
+.send-btn:active:not(:disabled) { transform: scale(0.94); }
+.send-btn:disabled { background: var(--border-color); color: var(--text-light); cursor: not-allowed; }

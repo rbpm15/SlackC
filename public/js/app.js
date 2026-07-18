@@ -5,15 +5,47 @@
 'use strict';
 
 /* ════════════════════════════════════════════════════════════════
-   IDENTIDAD
+   TEMA VISUAL (Dark/Light)
+════════════════════════════════════════════════════════════════ */
+let currentTheme = localStorage.getItem('slackc_theme') || 'light';
+
+function applyTheme(theme) {
+  document.body.classList.remove('theme-light', 'theme-dark');
+  document.body.classList.add(`theme-${theme}`);
+  localStorage.setItem('slackc_theme', theme);
+  const themeDarkSwitch = document.getElementById('themeDarkSwitch');
+  if (themeDarkSwitch) {
+    themeDarkSwitch.checked = (theme === 'dark');
+  }
+}
+
+applyTheme(currentTheme);
+
+/* ════════════════════════════════════════════════════════════════
+   IDENTIDAD y PERFIL
 ════════════════════════════════════════════════════════════════ */
 let myName     = sessionStorage.getItem('slackc_name') || '';
 let mySocketId = null;
 
 function resolverNombre() {
-  if (myName) return true;
+  if (myName) {
+    updateProfileUI();
+    return true;
+  }
   showNameModal();
   return false;
+}
+
+function updateProfileUI() {
+  const initial = myName ? myName.charAt(0).toUpperCase() : 'U';
+  const pi = document.getElementById('profileInitials');
+  const da = document.getElementById('dropdownAvatar');
+  const dn = document.getElementById('dropdownName');
+  const pnd = document.getElementById('profileNameDisplay');
+  if (pi) pi.textContent = initial;
+  if (da) da.textContent = initial;
+  if (dn) dn.textContent = myName || 'Usuario';
+  if (pnd) pnd.textContent = myName || 'Usuario';
 }
 
 function showNameModal() {
@@ -24,7 +56,48 @@ function ocultarNameModal() {
   document.getElementById('nameModal').style.display = 'none';
 }
 
-if (!myName) showNameModal();
+if (!myName) {
+  showNameModal();
+} else {
+  updateProfileUI();
+}
+
+// Dropdown Toggle
+const btnProfile = document.getElementById('btnProfile');
+const profileDropdown = document.getElementById('profileDropdown');
+
+if (btnProfile && profileDropdown) {
+  btnProfile.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isVisible = profileDropdown.style.display === 'flex';
+    profileDropdown.style.display = isVisible ? 'none' : 'flex';
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!profileDropdown.contains(e.target) && e.target !== btnProfile) {
+      profileDropdown.style.display = 'none';
+    }
+  });
+}
+
+// Dark switch inside dropdown
+const themeDarkSwitch = document.getElementById('themeDarkSwitch');
+if (themeDarkSwitch) {
+  themeDarkSwitch.checked = (currentTheme === 'dark');
+  themeDarkSwitch.addEventListener('change', (e) => {
+    currentTheme = e.target.checked ? 'dark' : 'light';
+    applyTheme(currentTheme);
+  });
+}
+
+// Edit name inside dropdown
+const btnChangeUser = document.getElementById('btnChangeUser');
+if (btnChangeUser) {
+  btnChangeUser.addEventListener('click', () => {
+    if (profileDropdown) profileDropdown.style.display = 'none';
+    showNameModal();
+  });
+}
 
 document.getElementById('nameSubmitBtn').addEventListener('click', () => {
   const val = document.getElementById('nameInput').value.trim();
@@ -32,6 +105,7 @@ document.getElementById('nameSubmitBtn').addEventListener('click', () => {
   myName = val.slice(0, 30);
   sessionStorage.setItem('slackc_name', myName);
   ocultarNameModal();
+  updateProfileUI();
   // Cargar DMs del usuario después de tener nombre
   cargarDMs();
 });
@@ -86,6 +160,27 @@ chatInputEl.addEventListener('keydown', e => {
   if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensaje(); }
 });
 sendBtnEl.addEventListener('click', enviarMensaje);
+
+// Toolbar formatting
+function applyFormatting(prefix, suffix) {
+  const start = chatInputEl.selectionStart;
+  const end = chatInputEl.selectionEnd;
+  const text = chatInputEl.value;
+  const before = text.substring(0, start);
+  const selected = text.substring(start, end);
+  const after = text.substring(end);
+  
+  chatInputEl.value = before + prefix + selected + suffix + after;
+  chatInputEl.selectionStart = start + prefix.length;
+  chatInputEl.selectionEnd = end + prefix.length;
+  chatInputEl.focus();
+  sendBtnEl.disabled = chatInputEl.value.trim().length === 0;
+}
+
+document.getElementById('btnFormatBold')?.addEventListener('click', () => applyFormatting('*', '*'));
+document.getElementById('btnFormatItalic')?.addEventListener('click', () => applyFormatting('_', '_'));
+document.getElementById('btnFormatCode')?.addEventListener('click', () => applyFormatting('\`\`\`\n', '\n\`\`\`'));
+document.getElementById('btnEmoji')?.addEventListener('click', () => applyFormatting('😊', ''));
 
 /* ════════════════════════════════════════════════════════════════
    ENVIAR MENSAJE

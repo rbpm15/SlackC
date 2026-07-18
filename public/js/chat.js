@@ -52,6 +52,13 @@ function escapeHtml(str = '') {
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
     .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
+function parseMarkdown(str = '') {
+  return str
+    .replace(/\*([^\*]+)\*/g, '<strong>$1</strong>')
+    .replace(/_([^_]+)_/g, '<em>$1</em>')
+    .replace(/\`\`\`([\s\S]*?)\`\`\`/g, '<pre style="background:var(--bg-secondary); padding:8px; border-radius:4px; font-family:monospace; margin:4px 0;">$1</pre>')
+    .replace(/\n/g, '<br>');
+}
 function formatHour(iso) {
   return new Date(iso).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
 }
@@ -94,7 +101,7 @@ function renderizarMensaje(msg, animado = true) {
           ${msg.isOwn ? '<span class="own-badge">Tú</span>' : ''}
           <span class="msg-time">${horaStr}</span>
         </div>` : `<span class="msg-time grouped-time">${horaStr}</span>`}
-      <div class="msg-text">${escapeHtml(msg.texto).replace(/\n/g, '<br>')}</div>
+      <div class="msg-text">${parseMarkdown(escapeHtml(msg.texto))}</div>
     </div>
     <div class="msg-actions">
       <button class="msg-action-btn" title="Reaccionar">😀</button>
@@ -213,6 +220,20 @@ async function seleccionarCanal(id, nombre, descripcion = '', tipo = 'channel') 
   document.getElementById('chatChannelIcon').textContent = prefix;
   document.getElementById('chatInput').placeholder       = `Mensaje en ${prefix}${nombre}`;
   document.getElementById('chatTopic').textContent       = descripcion;
+
+  // Actualizar Welcome Banner
+  const wTitle = document.getElementById('welcomeTitle');
+  const wIcon  = document.getElementById('welcomeIcon');
+  const wDesc  = document.getElementById('welcomeDesc');
+  if (wTitle) wTitle.textContent = `${prefix}${nombre}`;
+  if (wIcon)  wIcon.textContent  = prefix;
+  if (wDesc) {
+    if (tipo === 'dm') {
+      wDesc.innerHTML = `Este es el comienzo de tus mensajes directos con <strong>${escapeHtml(nombre)}</strong>.`;
+    } else {
+      wDesc.innerHTML = `Este es el punto de inicio del canal <strong>${prefix}${escapeHtml(nombre)}</strong>. ${escapeHtml(descripcion)}`;
+    }
+  }
 
   // Limpiar feed
   feedEl.querySelectorAll('.slack-message, .system-message').forEach(n => n.remove());

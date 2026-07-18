@@ -8,7 +8,7 @@
 
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_URL     = 'https://openrouter.ai/api/v1/chat/completions';
-const AI_MODEL           = 'meta-llama/llama-3.1-8b-instruct:free'; // modelo gratuito
+const AI_MODEL           = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free'; // modelo configurable
 
 // ── Fallback Regex ────────────────────────────────────────────
 const PATRON_CITA = /\b(?:nos\s+vemos|quedamos|reuni[oó]n|junta|cita|llamada|videollamada|meet(?:ing)?|agend(?:ar)?|vemos|vernos|pasamos)\b[^.!?]{0,80}\b(ma[nñ]ana|hoy|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b[^.!?]{0,40}\ba\s+las?\s+(\d{1,2}(?::\d{2})?)\s*(am|pm|hrs?|h)?\b/i;
@@ -90,4 +90,46 @@ async function detectarCitaIA(texto) {
   }
 }
 
-module.exports = { detectarCitaIA };
+/**
+ * Chatea con la IA y retorna un texto de respuesta.
+ * @param {string} texto 
+ * @returns {Promise<string>}
+ */
+async function chatConBot(texto) {
+  if (!OPENROUTER_API_KEY) {
+    return 'Lo siento, no tengo mi clave de API configurada. (Falta OPENROUTER_API_KEY)';
+  }
+
+  try {
+    const res = await fetch(OPENROUTER_URL, {
+      method:  'POST',
+      headers: {
+        'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
+        'Content-Type':  'application/json',
+        'HTTP-Referer':  'https://slackc.onrender.com',
+        'X-Title':       'SlackC',
+      },
+      body: JSON.stringify({
+        model: AI_MODEL,
+        messages: [
+          { role: 'system',  content: 'Eres SLC BOT, el asistente amigable e inteligente de la aplicación de chat SlackC. Ayudas a los usuarios de manera concisa y profesional.' },
+          { role: 'user',    content: texto },
+        ],
+        temperature: 0.7,
+        max_tokens:  300,
+      }),
+      signal: AbortSignal.timeout(10000), // 10 seg timeout
+    });
+
+    if (!res.ok) throw new Error(`OpenRouter ${res.status}`);
+
+    const json = await res.json();
+    return json.choices?.[0]?.message?.content?.trim() || 'No tengo respuesta para eso.';
+
+  } catch (err) {
+    console.error('[AgendaAI] Error chatConBot:', err.message);
+    return 'Lo siento, ocurrió un error al intentar conectarme con mi servidor.';
+  }
+}
+
+module.exports = { detectarCitaIA, chatConBot };

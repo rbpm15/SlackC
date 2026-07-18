@@ -128,6 +128,39 @@ function socketHandler(io) {
 
         }).catch(err => console.error('[Socket] Error IA cita:', err.message));
 
+        // 5. Interacción directa con el Bot si el canal es slcbot
+        if (channelId === 'slcbot' && autor !== 'SLC BOT') {
+          const { chatConBot } = require('../services/agendaAI');
+          
+          // Emitimos que el bot está "escribiendo"
+          io.to(channelId).emit('escribiendo', {
+            autor: 'SLC BOT',
+            socketId: 'bot',
+            channelId
+          });
+
+          chatConBot(texto).then(async (respuesta) => {
+            const botMsgDoc = await Message.create({
+              texto: respuesta,
+              autor: 'SLC BOT',
+              socketId: 'bot',
+              channelId,
+              tipo: 'bot',
+              tieneEvento: false,
+            });
+
+            io.to(channelId).emit('mensaje_recibido', {
+              _id:        botMsgDoc._id.toString(),
+              socketId:   'bot',
+              autor:      'SLC BOT',
+              texto:      respuesta,
+              channelId,
+              tieneEvento: false,
+              createdAt:  botMsgDoc.createdAt,
+            });
+          }).catch(err => console.error('[Socket] Error ChatBot:', err.message));
+        }
+
       } catch (err) {
         console.error('[Socket] Error mensaje:', err.message);
         socket.emit('error_servidor', { error: 'Error interno del servidor.' });

@@ -1,0 +1,85 @@
+/* ═══════════════════════════════════════════════════════════════
+   calendar.css  —  Estilos para el Mini Calendario en la agenda
+═══════════════════════════════════════════════════════════════ */
+
+.mini-calendar {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.mini-cal-header {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: #3949AB;
+  margin-bottom: 10px;
+  text-transform: capitalize;
+}
+
+.mini-cal-days {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.cal-day-label {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--text-light);
+  padding: 2px 0;
+}
+
+.mini-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.cal-cell {
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-main);
+  padding: 4px 2px;
+  border-radius: 6px;
+  cursor: default;
+  transition: background 0.1s;
+}
+.cal-cell.empty { color: transparent; }
+.cal-cell.today {
+  background: #3949AB;
+  color: white;
+  font-weight: 700;
+  border-radius: 50%;
+  width: 26px; height: 26px;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 auto;
+}
+
+.mini-cal-footer {
+  margin-top: 10px;
+  text-align: center;
+}
+
+.today-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: #3949AB;
+  background: var(--bg-secondary);
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.mini-cal-empty-text {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-light);
+  margin-top: 4px;
+  margin-bottom: 8px;
+}

@@ -103,23 +103,34 @@ document.getElementById('nameSubmitBtn').addEventListener('click', async () => {
   const val = document.getElementById('nameInput').value.trim();
   if (!val) return;
   const oldName = myName;
-  myName = val.slice(0, 30);
-  localStorage.setItem('slackc_name', myName);
   
   try {
-    await fetch('/api/users/register', {
+    const res = await fetch('/api/users/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: myName, oldUsername: oldName })
+      body: JSON.stringify({ username: val.slice(0, 30), oldUsername: oldName })
     });
+    const d = await res.json();
+    
+    if (!d.ok) {
+      alert('No se pudo registrar: ' + d.error);
+      return; // Do not hide modal or save to localStorage
+    }
+    
+    myName = val.slice(0, 30);
+    localStorage.setItem('slackc_name', myName);
+    ocultarNameModal();
+    updateProfileUI();
+    cargarDMs();
+    
+    // Re-unirse al socket si cambió de nombre
+    const chId = window.ChatModule?.getCurrentChannelId();
+    if (chId && socket) socket.emit('unirse_canal', { channelId: chId, autor: myName });
+    
   } catch (e) {
     console.error('Error al registrar usuario:', e);
+    alert('Ocurrió un error al intentar conectarse al servidor.');
   }
-
-  ocultarNameModal();
-  updateProfileUI();
-  // Cargar DMs del usuario después de tener nombre
-  cargarDMs();
 });
 
 document.getElementById('nameInput').addEventListener('keydown', e => {
@@ -275,6 +286,13 @@ socket.on('canal_miembros', (data) => {
 // Errores
 socket.on('error_servidor', (data) => console.error('[Socket]', data.error));
 
+
+// Usuarios en línea
+socket.on('usuarios_online', (nombres) => {
+  ChatModule.setOnlineUsers(nombres);
+  cargarDMs();
+});
+
 /* ════════════════════════════════════════════════════════════════
    CAMBIO DE CANAL → notificar al servidor (Socket.io rooms)
 ════════════════════════════════════════════════════════════════ */
@@ -291,24 +309,11 @@ document.addEventListener('canal_cambiado', (e) => {
 async function cargarDMs() {
   if (!myName) return;
   try {
-    const r = await fetch(`/api/dm/list?user=${encodeURIComponent(myName)}`);
-    const d = await r.json();
-    if (d.ok) ChatModule.renderizarDMs(d.data, myName);
-    
-    // Cargar directorio de usuarios (opcional, para DM rápido)
     const r2 = await fetch('/api/users');
     const d2 = await r2.json();
     if (d2.ok) ChatModule.renderizarUsuarios(d2.data, myName);
   } catch { /* silencioso */ }
 }
-
-// Click "+" en sección DMs → crear nuevo DM
-document.querySelector('#toggleDMs .add-section-btn')?.addEventListener('click', (e) => {
-  e.stopPropagation();
-  const target = prompt('¿A quién quieres enviar un mensaje directo? (escribe su nombre)');
-  if (!target || !target.trim()) return;
-  iniciarDM(target.trim());
-});
 
 async function iniciarDM(otroUsuario) {
   if (!myName) { showNameModal(); return; }
@@ -316,12 +321,9 @@ async function iniciarDM(otroUsuario) {
     const r = await fetch(`/api/dm?userA=${encodeURIComponent(myName)}&userB=${encodeURIComponent(otroUsuario)}`);
     const d = await r.json();
     if (!d.ok) { alert(d.error); return; }
-    // Agregar a la lista si no existe
     const dm = d.data;
-    if (!document.querySelector(`[data-channel-id="${dm._id}"]`)) {
-      await cargarDMs();
-    }
-    ChatModule.seleccionarCanal(dm._id, otroUsuario, `Mensajes directos con ${otroUsuario}`, 'dm');
+    await cargarDMs();
+    ChatModule.seleccionarCanal(dm._id, otroUsuario, `Mensaje directo con ${otroUsuario}`, 'dm');
   } catch (e) {
     alert('Error iniciando DM: ' + e.message);
   }
@@ -374,10 +376,73 @@ document.getElementById('toggleChannels').addEventListener('click', () => {
   arrow.classList.toggle('closed', open);
 });
 
-document.getElementById('toggleDMs').addEventListener('click', () => {
-  const list  = document.getElementById('dmList');
-  const arrow = document.querySelector('#toggleDMs .section-arrow');
+document.getElementById('toggleUsers')?.addEventListener('click', () => {
+  const list  = document.getElementById('usersList');
+  const arrow = document.querySelector('#toggleUsers .section-arrow');
   const open  = list.style.display !== 'none';
   list.style.display = open ? 'none' : '';
   arrow.classList.toggle('closed', open);
+});
+
+/* ════════════════════════════════════════════════════════════════
+   MOBILE INTERACTION & TOGGLES (LIQUID LAYOUT)
+   ════════════════════════════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  const appShell = document.querySelector('.app-shell');
+  const btnToggleSidebar = document.getElementById('btnToggleSidebar');
+  const btnToggleRightPanel = document.getElementById('btnToggleRightPanel');
+  const btnToggleChatbot = document.getElementById('btnToggleChatbot');
+  const btnCloseAgenda = document.getElementById('btnCloseAgenda');
+  const btnCloseChatbot = document.getElementById('btnCloseChatbot');
+  const sidebarBackdrop = document.getElementById('sidebarBackdrop');
+
+  function closeAllDrawers() {
+    if (appShell) {
+      appShell.classList.remove('sidebar-open', 'right-panel-open');
+    }
+  }
+
+  if (btnToggleSidebar) {
+    btnToggleSidebar.addEventListener('click', (e) => {
+      e.stopPropagation();
+      appShell.classList.remove('right-panel-open');
+      appShell.classList.toggle('sidebar-open');
+    });
+  }
+
+  if (btnToggleRightPanel) {
+    btnToggleRightPanel.addEventListener('click', (e) => {
+      e.stopPropagation();
+      appShell.classList.remove('sidebar-open');
+      appShell.classList.toggle('right-panel-open');
+    });
+  }
+
+  if (btnToggleChatbot) {
+    btnToggleChatbot.addEventListener('click', () => {
+      if (window.innerWidth <= 992) {
+        appShell.classList.remove('sidebar-open');
+        appShell.classList.add('right-panel-open');
+      }
+    });
+  }
+
+  if (sidebarBackdrop) {
+    sidebarBackdrop.addEventListener('click', closeAllDrawers);
+  }
+
+  if (btnCloseAgenda) {
+    btnCloseAgenda.addEventListener('click', closeAllDrawers);
+  }
+
+  if (btnCloseChatbot) {
+    btnCloseChatbot.addEventListener('click', closeAllDrawers);
+  }
+
+  // Auto-close sidebar on mobile when switching channels
+  document.addEventListener('canal_cambiado', () => {
+    if (appShell) {
+      appShell.classList.remove('sidebar-open');
+    }
+  });
 });

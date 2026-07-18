@@ -17,6 +17,16 @@ function contarEnCanal(channelId) {
   return count;
 }
 
+function obtenerNombresOnline() {
+  const nombres = new Set();
+  for (const u of usuariosOnline.values()) {
+    if (u.nombre && u.nombre !== 'Anónimo' && u.nombre !== 'SLC BOT') {
+      nombres.add(u.nombre);
+    }
+  }
+  return Array.from(nombres);
+}
+
 // ──────────────────────────────────────────────────────────────
 //  HANDLER PRINCIPAL
 // ──────────────────────────────────────────────────────────────
@@ -26,9 +36,23 @@ function socketHandler(io) {
     console.log(`[Socket] +1 (${socket.id}) | total: ${io.engine.clientsCount}`);
 
     // ── Unirse a un canal (sala Socket.io) ──────────────────────
-    socket.on('unirse_canal', (data) => {
+    socket.on('unirse_canal', async (data) => {
       const { channelId, autor } = data || {};
       if (!channelId) return;
+
+      if (autor && autor !== 'Anónimo') {
+        try {
+          const User = require('../models/User');
+          const user = await User.findOne({ username: autor });
+          if (user && user.isDisabled) {
+            socket.emit('error_servidor', { error: 'Tu cuenta ha sido deshabilitada por el administrador.' });
+            socket.disconnect();
+            return;
+          }
+        } catch (e) {
+          console.error('[Socket] Error verificando usuario', e);
+        }
+      }
 
       // Salir del canal anterior si existe
       const prev = usuariosOnline.get(socket.id);
@@ -42,6 +66,9 @@ function socketHandler(io) {
         channelId,
         count: contarEnCanal(channelId),
       });
+
+      // Broadcast list of online users
+      io.emit('usuarios_online', obtenerNombresOnline());
     });
 
     // ── Typing indicator ─────────────────────────────────────────
@@ -186,6 +213,9 @@ function socketHandler(io) {
           count: contarEnCanal(info.channelId),
         });
       }
+
+      // Broadcast list of online users
+      io.emit('usuarios_online', obtenerNombresOnline());
 
       console.log(`[Socket] -1 (${socket.id})`);
     });

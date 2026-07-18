@@ -122,10 +122,20 @@ router.post('/users/register', async (req, res) => {
     const oldName = oldUsername ? oldUsername.trim().slice(0, 30) : null;
 
     if (newName && newName !== 'SLC BOT' && newName !== 'Usuario') {
-      // Registrar el nuevo nombre
+      // Verificar si el usuario está deshabilitado
+      const existingUser = await User.findOne({ username: newName });
+      if (existingUser && existingUser.isDisabled) {
+        return res.status(403).json({ ok: false, error: 'Cuenta deshabilitada por el administrador.' });
+      }
+
+      // Registrar el nuevo nombre y actualizar metadatos
       await User.findOneAndUpdate(
         { username: newName },
-        { username: newName },
+        { 
+          username: newName,
+          lastConnection: new Date(),
+          device: req.headers['user-agent'] || 'Unknown'
+        },
         { upsert: true, new: true }
       );
 
@@ -266,6 +276,50 @@ router.post('/bot/chat', async (req, res) => {
   } catch (err) {
     console.error('[API] POST /bot/chat:', err.message);
     res.status(500).json({ ok: false, error: 'Error interno del bot.' });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+//  ADMINISTRACIÓN
+// ══════════════════════════════════════════════════════════════
+
+// Admin Login
+router.post('/admin/login', (req, res) => {
+  const { username, password } = req.body;
+  if (username === 'admin' && password === 'Sl@ckC_2026_Secure$Admin!99') {
+    res.json({ ok: true, token: 'superadmin_token_123' });
+  } else {
+    res.status(401).json({ ok: false, error: 'Credenciales inválidas' });
+  }
+});
+
+// Admin Get Users
+router.get('/admin/users', async (req, res) => {
+  if (req.headers['authorization'] !== 'Bearer superadmin_token_123') {
+    return res.status(403).json({ ok: false, error: 'No autorizado' });
+  }
+  try {
+    const users = await User.find().sort({ lastConnection: -1 }).lean();
+    res.json({ ok: true, data: users });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin Toggle Disable User
+router.post('/admin/users/:username/toggle', async (req, res) => {
+  if (req.headers['authorization'] !== 'Bearer superadmin_token_123') {
+    return res.status(403).json({ ok: false, error: 'No autorizado' });
+  }
+  try {
+    const user = await User.findOne({ username: req.params.username });
+    if (!user) return res.status(404).json({ ok: false, error: 'Usuario no encontrado' });
+    
+    user.isDisabled = !user.isDisabled;
+    await user.save();
+    res.json({ ok: true, isDisabled: user.isDisabled });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
   }
 });
 

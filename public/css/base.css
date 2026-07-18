@@ -139,3 +139,134 @@ input:checked + .n8n-slider:before {
   color: var(--text-light);
   font-weight: 600;
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVIDAD Y LAYOUT LÍQUIDO (Mobile & Tablet)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Toggle buttons hidden on desktop */
+.sidebar-toggle-btn,
+.agenda-toggle-btn {
+  display: none !important;
+}
+
+/* Backdrop */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 99;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.app-shell.sidebar-open .sidebar-backdrop,
+.app-shell.right-panel-open .sidebar-backdrop {
+  display: block;
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Tablet view (< 992px) */
+@media (max-width: 992px) {
+  .agenda-toggle-btn {
+    display: flex !important;
+  }
+  
+  .agenda-panel, .chatbot-panel {
+    position: fixed !important;
+    top: 0;
+    right: -100% !important;
+    bottom: 0;
+    width: var(--agenda-w) !important;
+    min-width: var(--agenda-w) !important;
+    height: 100vh !important;
+    z-index: 100 !important;
+    transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.25) !important;
+    border-left: 1px solid var(--agenda-border) !important;
+  }
+
+  .agenda-close-btn {
+    display: inline-block !important;
+  }
+
+  .app-shell.right-panel-open .agenda-panel,
+  .app-shell.right-panel-open .chatbot-panel {
+    right: 0 !important;
+  }
+}
+
+/* Mobile view (< 768px) */
+@media (max-width: 768px) {
+  .sidebar-toggle-btn {
+    display: flex !important;
+  }
+
+  .sidebar {
+    position: fixed !important;
+    top: 0;
+    left: -100% !important;
+    bottom: 0;
+    width: var(--sidebar-w) !important;
+    min-width: var(--sidebar-w) !important;
+    height: 100vh !important;
+    z-index: 100 !important;
+    transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25) !important;
+    border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+  }
+
+  .app-shell.sidebar-open .sidebar {
+    left: 0 !important;
+  }
+
+  /* Liquid system spacing adjustments */
+  .chat-topic,
+  .member-count {
+    display: none !important;
+  }
+  
+  .chat-area {
+    width: 100% !important;
+    flex: 1 !important;
+  }
+
+  .chat-header {
+    padding: 10px 12px !important;
+  }
+
+  .chat-header-right {
+    gap: 4px !important;
+  }
+
+  .n8n-toggle-wrap {
+    gap: 4px !important;
+  }
+
+  .n8n-label {
+    font-size: 11px !important;
+  }
+
+  .input-area {
+    padding: 8px 12px 12px !important;
+  }
+
+  .slack-message {
+    padding: 6px 12px !important;
+    gap: 8px !important;
+  }
+  
+  .system-message {
+    padding: 6px 12px 6px 48px !important;
+  }
+
+  .name-modal-box {
+    padding: 30px 20px !important;
+    width: 90% !important;
+    border-radius: 12px !important;
+  }
+}

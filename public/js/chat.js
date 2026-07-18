@@ -6,7 +6,7 @@
 
 /* ════════════════════════════════════════════════════════════════
    COLORES DE AVATAR
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 const AVATAR_COLORS = [
   '#E01E5A', '#2EB67D', '#ECB22E', '#36C5F0',
   '#4A154B', '#1264A3', '#FF6B35', '#7B5EA7',
@@ -25,7 +25,7 @@ function colorDeAutor(autor) {
 
 /* ════════════════════════════════════════════════════════════════
    ESTADO GLOBAL
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 let _lastAutor      = null;
 let _lastTime       = 0;
 const AGRUP_MS      = 5 * 60 * 1000;
@@ -35,10 +35,11 @@ let currentChannelType = 'channel'; // 'channel' | 'dm'
 
 // Badges de no-leídos: { channelId → count }
 const _unreadCounts = {};
+let _onlineUsers = new Set();
 
 /* ════════════════════════════════════════════════════════════════
    DOM
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 const feedEl       = document.getElementById('messagesFeed');
 const typingAreaEl = document.getElementById('typingArea');
 const typingTextEl = document.getElementById('typingText');
@@ -46,7 +47,7 @@ let _typingTimer   = null;
 
 /* ════════════════════════════════════════════════════════════════
    HELPERS
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 function escapeHtml(str = '') {
   return String(str)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;')
@@ -68,7 +69,7 @@ function iniciales(nombre = '') {
 
 /* ════════════════════════════════════════════════════════════════
    RENDERIZAR MENSAJE
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 function renderizarMensaje(msg, animado = true) {
   const domId = `msg-${msg.id}`;
   if (document.getElementById(domId)) return;
@@ -115,7 +116,7 @@ function renderizarMensaje(msg, animado = true) {
 
 /* ════════════════════════════════════════════════════════════════
    MENSAJE DE SISTEMA
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 function renderizarMensajeSistema(texto) {
   const el = document.createElement('div');
   el.className   = 'system-message anim-fade-up';
@@ -127,7 +128,7 @@ function renderizarMensajeSistema(texto) {
 
 /* ════════════════════════════════════════════════════════════════
    TYPING INDICATOR
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 function mostrarTyping(quien) {
   typingAreaEl.style.display = 'flex';
   typingTextEl.textContent   = quien ? `${quien} está escribiendo…` : 'Alguien está escribiendo…';
@@ -141,10 +142,11 @@ function ocultarTyping() {
 
 /* ════════════════════════════════════════════════════════════════
    RENDERIZADO DINÁMICO DE CANALES (desde MongoDB)
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 function renderizarCanales(canales) {
   const listEl = document.getElementById('channelList');
   const addBtn = document.getElementById('btnAgregarCanal');
+  if (!listEl) return;
   listEl.innerHTML = '';
 
   canales.forEach(c => {
@@ -171,52 +173,49 @@ function renderizarCanales(canales) {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   RENDERIZADO DINÁMICO DE DMs (desde MongoDB)
-════════════════════════════════════════════════════════════════ */
+   RENDERIZADO DINÁMICO DE DMs (Obsoleto, pero se mantiene la firma)
+   ════════════════════════════════════════════════════════════════ */
 function renderizarDMs(dms, myName) {
-  const listEl = document.getElementById('dmList');
-  listEl.innerHTML = '';
-
-  dms.forEach(dm => {
-    const otherUser = dm.users?.find(u => u !== myName) || 'Desconocido';
-    const color     = colorDeAutor(otherUser);
-
-    const li = document.createElement('li');
-    li.className          = 'dm-item';
-    li.dataset.channelId  = dm._id;
-    li.dataset.channelName = otherUser;
-    li.dataset.channelDesc = `Mensajes directos con ${otherUser}`;
-    li.dataset.isDm       = 'true';
-    li.innerHTML = `
-      <span class="dm-avatar" style="background:${color}">${iniciales(otherUser)}</span>
-      <span class="dm-name">${escapeHtml(otherUser)}</span>
-      <span class="presence online"></span>
-      <span class="unread-badge" id="badge-${dm._id}" style="display:none">0</span>
-    `;
-    listEl.appendChild(li);
-  });
+  // Obsoleto, los DMs ahora se manejan a través del Directorio
 }
 
 /* ════════════════════════════════════════════════════════════════
    RENDERIZADO DINÁMICO DE USUARIOS
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 function renderizarUsuarios(usuarios, myName) {
   const listEl = document.getElementById('usersList');
   if (!listEl) return;
   listEl.innerHTML = '';
 
-  usuarios.forEach(u => {
+  // Sort: online users first, then alphabetically
+  const ordenados = [...usuarios].sort((a, b) => {
+    const aOnline = _onlineUsers.has(a);
+    const bOnline = _onlineUsers.has(b);
+    if (aOnline && !bOnline) return -1;
+    if (!aOnline && bOnline) return 1;
+    return a.localeCompare(b);
+  });
+
+  ordenados.forEach(u => {
     if (u === myName) return; // No mostrarte a ti mismo en el directorio
+    const isOnline = _onlineUsers.has(u);
     const color = colorDeAutor(u);
     const li = document.createElement('li');
     li.className = 'dm-item';
     li.style.cursor = 'pointer';
+    
+    // Highlight if active
+    const isCurrentlyActive = currentChannelType === 'dm' && document.getElementById('chatChannelName').textContent === u;
+    if (isCurrentlyActive) {
+      li.classList.add('active');
+    }
+
     // Cuando hacen clic, invocan iniciarDM en app.js
     li.onclick = () => { if (typeof iniciarDM === 'function') iniciarDM(u); };
     li.innerHTML = `
       <span class="dm-avatar" style="background:${color}">${iniciales(u)}</span>
       <span class="dm-name">${escapeHtml(u)}</span>
-      <span class="presence online"></span>
+      <span class="presence ${isOnline ? 'online' : 'offline'}"></span>
     `;
     listEl.appendChild(li);
   });
@@ -224,14 +223,20 @@ function renderizarUsuarios(usuarios, myName) {
 
 /* ════════════════════════════════════════════════════════════════
    SELECCIONAR CANAL / DM
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 async function seleccionarCanal(id, nombre, descripcion = '', tipo = 'channel') {
   currentChannelId   = id;
   currentChannelType = tipo;
 
+  if (tipo === 'dm') {
+    descripcion = `Mensaje directo con ${nombre}`;
+  }
+
   // Marcar activo en sidebar
   document.querySelectorAll('.channel-item, .dm-item').forEach(i => {
-    i.classList.toggle('active', i.dataset.channelId === id);
+    const isChannelActive = i.dataset.channelId === id;
+    const isUserActive = tipo === 'dm' && i.querySelector('.dm-name')?.textContent === nombre;
+    i.classList.toggle('active', isChannelActive || isUserActive);
   });
 
   // Limpiar badge de no-leídos
@@ -279,7 +284,7 @@ async function seleccionarCanal(id, nombre, descripcion = '', tipo = 'channel') 
 
 /* ════════════════════════════════════════════════════════════════
    NO-LEÍDOS (badge)
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 function incrementarNoLeido(channelId) {
   if (channelId === currentChannelId) return; // ya está visible
   _unreadCounts[channelId] = (_unreadCounts[channelId] || 0) + 1;
@@ -292,7 +297,7 @@ function incrementarNoLeido(channelId) {
 
 /* ════════════════════════════════════════════════════════════════
    BÚSQUEDA GLOBAL
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 const searchBtnEl   = document.getElementById('searchBtn');
 const searchOverlay = document.getElementById('searchOverlay');
 const searchInputEl = document.getElementById('searchInput');
@@ -379,22 +384,16 @@ async function buscar(q) {
 
 /* ════════════════════════════════════════════════════════════════
    DELEGACIÓN DE CLICKS — Sidebar
-════════════════════════════════════════════════════════════════ */
-document.getElementById('channelList').addEventListener('click', e => {
+   ════════════════════════════════════════════════════════════════ */
+document.getElementById('channelList')?.addEventListener('click', e => {
   const item = e.target.closest('.channel-item[data-channel-id]');
   if (!item) return;
   seleccionarCanal(item.dataset.channelId, item.dataset.channelName, item.dataset.channelDesc, 'channel');
 });
 
-document.getElementById('dmList').addEventListener('click', e => {
-  const item = e.target.closest('.dm-item[data-channel-id]');
-  if (!item) return;
-  seleccionarCanal(item.dataset.channelId, item.dataset.channelName, item.dataset.channelDesc, 'dm');
-});
-
 /* ════════════════════════════════════════════════════════════════
    BOTÓN "AGREGAR CANAL"
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 document.getElementById('btnAgregarCanal')?.addEventListener('click', () => {
   document.getElementById('newChannelModal').style.display = 'flex';
   setTimeout(() => document.getElementById('newChannelInput')?.focus(), 100);
@@ -447,7 +446,7 @@ document.getElementById('newChannelSubmit')?.addEventListener('click', async () 
 
 /* ════════════════════════════════════════════════════════════════
    API PÚBLICA DEL MÓDULO
-════════════════════════════════════════════════════════════════ */
+   ════════════════════════════════════════════════════════════════ */
 window.ChatModule = {
   renderizarMensaje,
   renderizarMensajeSistema,
@@ -457,6 +456,9 @@ window.ChatModule = {
   renderizarDMs,
   renderizarUsuarios,
   incrementarNoLeido,
+  setOnlineUsers(nombres = []) {
+    _onlineUsers = new Set(nombres);
+  },
 
   getCurrentChannelId:   () => currentChannelId,
   getCurrentChannelType: () => currentChannelType,

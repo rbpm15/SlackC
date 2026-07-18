@@ -10,6 +10,18 @@ const UserSchema = new mongoose.Schema(
       unique: true,
       trim: true,
     },
+    lastConnection: {
+      type: Date,
+      default: Date.now
+    },
+    device: {
+      type: String,
+      default: 'Unknown'
+    },
+    isDisabled: {
+      type: Boolean,
+      default: false
+    }
   },
   { timestamps: true }
 );

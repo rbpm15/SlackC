@@ -1,11 +1,14 @@
 <!DOCTYPE html>
 <html lang="es">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>SlackC</title>
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>" />
-  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
   <link rel="stylesheet" href="/css/base.css" />
   <link rel="stylesheet" href="/css/sidebar.css" />
@@ -15,406 +18,512 @@
   <link rel="stylesheet" href="/css/calendar.css" />
   <link rel="stylesheet" href="/css/modals.css" />
 </head>
+
 <body>
 
-<!-- ═══════════════════════════════════════════════════════════
+  <!-- ═══════════════════════════════════════════════════════════
      APP SHELL
 ═══════════════════════════════════════════════════════════ -->
-<div class="app-shell">
+  <div class="app-shell">
+    <!-- Backdrop para versión móvil -->
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
-  <!-- ── SIDEBAR (Slack-style) ─────────────────────────────── -->
-  <nav class="sidebar" id="sidebar">
-    <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
-    <!-- Workspace header -->
-    <div class="sidebar-header" style="flex-shrink: 0;">
-      <button class="workspace-btn" id="workspaceBtn">
-        <span class="workspace-name">SlackC</span>
-        <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/>
-        </svg>
-      </button>
-      <button class="new-msg-btn" title="Nuevo mensaje" id="btnNuevoMensaje">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-          <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 010 2H4a1 1 0 01-1-1zM3 16a1 1 0 011-1h6a1 1 0 010 2H4a1 1 0 01-1-1z"/>
-        </svg>
-      </button>
-    </div>
+    <!-- ── SIDEBAR (Slack-style) ─────────────────────────────── -->
+    <nav class="sidebar" id="sidebar">
+      <div style="flex: 1; overflow-y: auto; display: flex; flex-direction: column;">
+        <!-- Workspace header -->
+        <div class="sidebar-header" style="flex-shrink: 0; position: relative;">
+          <button class="workspace-btn" id="workspaceBtn">
+            <span class="workspace-name">SlackC</span>
+            <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor">
+              <path fill-rule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" />
+            </svg>
+          </button>
 
-    <!-- Search -->
-    <div class="sidebar-search">
-      <button class="search-btn" id="searchBtn">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-          <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"/>
-        </svg>
-        Buscar en SlackC
-      </button>
-    </div>
+          <!-- Menu Workspace / Admin -->
+          <div class="profile-dropdown" id="workspaceDropdown" style="display: none; top: 100%; left: 16px;">
+            <div class="dropdown-item" id="btnConfiguracion">
+              <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16" style="margin-right: 8px;">
+                <path fill-rule="evenodd"
+                  d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                  clip-rule="evenodd" />
+              </svg>
+              Configuración
+            </div>
+          </div>
 
-    <!-- Nav items -->
-    <div class="sidebar-nav">
-      <a class="sidebar-nav-item" href="#">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
-        Actividad
-      </a>
-      <a class="sidebar-nav-item" href="#">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
-        Mensajes directos
-      </a>
-      <a class="sidebar-nav-item" href="#">
-        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"/></svg>
-        Más tarde
-      </a>
-    </div>
+          <button class="new-msg-btn" title="Nuevo mensaje" id="btnNuevoMensaje">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
+              <path
+                d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 010 2H4a1 1 0 01-1-1zM3 16a1 1 0 011-1h6a1 1 0 010 2H4a1 1 0 01-1-1z" />
+            </svg>
+          </button>
+        </div>
 
-    <!-- Channels section -->
-    <div class="sidebar-section">
-      <div class="sidebar-section-header" id="toggleChannels">
-        <svg class="section-arrow open" viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
-          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/>
-        </svg>
-        Canales
-        <button class="add-section-btn" title="Agregar canal">+</button>
+        <!-- Search -->
+        <div class="sidebar-search">
+          <button class="search-btn" id="searchBtn">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+              <path fill-rule="evenodd"
+                d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" />
+            </svg>
+            Buscar en SlackC
+          </button>
+        </div>
+
+        <!-- Nav items -->
+        <div class="sidebar-nav">
+          <a class="sidebar-nav-item" href="#">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+              <path
+                d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z" />
+            </svg>
+            Actividad
+          </a>
+          <a class="sidebar-nav-item" href="#">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+              <path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z" />
+              <path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z" />
+            </svg>
+            Mensajes directos
+          </a>
+          <a class="sidebar-nav-item" href="#">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+              <path fill-rule="evenodd"
+                d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z" />
+            </svg>
+            Más tarde
+          </a>
+        </div>
+
+        <!-- Channels section -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-header" id="toggleChannels">
+            <svg class="section-arrow open" viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
+              <path fill-rule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" />
+            </svg>
+            Canales
+            <button class="add-section-btn" title="Agregar canal">+</button>
+          </div>
+          <ul class="channel-list" id="channelList">
+            <li class="channel-item active" data-channel="general">
+              <span class="channel-hash">#</span> general
+            </li>
+            <li class="channel-item" data-channel="desarrollo">
+              <span class="channel-hash">#</span> desarrollo
+              <span class="badge">3</span>
+            </li>
+            <li class="channel-item" data-channel="diseno">
+              <span class="channel-hash">#</span> diseño
+            </li>
+            <li class="channel-item" data-channel="random">
+              <span class="channel-hash">#</span> random
+            </li>
+            <li class="channel-item add-channel" id="btnAgregarCanal">
+              <span class="channel-plus">+</span> Agregar canal
+            </li>
+          </ul>
+        </div>
+
+        <!-- Directorio de Usuarios -->
+        <div class="sidebar-section">
+          <div class="sidebar-section-header" id="toggleUsers" style="cursor: pointer;">
+            <svg class="section-arrow open" viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
+              <path fill-rule="evenodd"
+                d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" />
+            </svg>
+            Directorio (Clic para chatear)
+          </div>
+          <ul class="dm-list" id="usersList">
+            <!-- Usuarios cargados dinámicamente -->
+          </ul>
+        </div>
+      </div> <!-- /Fin scrollable -->
+
+      <!-- Botón de Perfil & Menú (Bottom Sidebar) -->
+      <div class="profile-menu-container"
+        style="flex-shrink: 0; position: relative; margin-top: auto; padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.08);">
+        <button class="profile-avatar-btn" id="btnProfile" title="Ver perfil y configuración"
+          style="width: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 10px; background: transparent; padding: 8px; border-radius: 6px;">
+          <span class="dm-avatar" id="profileInitials" style="background:#3B82F6">U</span>
+          <span id="profileNameDisplay"
+            style="color: var(--slack-text); font-weight: 700; font-size: 14px;">Usuario</span>
+        </button>
+
+        <div class="profile-dropdown" id="profileDropdown"
+          style="display: none; bottom: 50px; left: 16px; top: auto; right: auto;">
+          <div class="profile-dropdown-header">
+            <div class="profile-dropdown-avatar" id="dropdownAvatar">U</div>
+            <div class="profile-dropdown-info">
+              <div class="profile-dropdown-name" id="dropdownName">Usuario</div>
+              <div class="profile-dropdown-status"><span class="conn-dot online" style="animation:none;"></span> Activo
+              </div>
+            </div>
+          </div>
+          <div class="profile-dropdown-divider"></div>
+          <div class="profile-dropdown-item theme-switch-item"
+            style="display:flex; justify-content:space-between; align-items:center; padding: 10px 14px;">
+            <span style="font-size:13px; font-weight:600; color:var(--text-main);">Modo Oscuro</span>
+            <label class="n8n-switch" style="width:34px; height:18px;">
+              <input type="checkbox" id="themeDarkSwitch" />
+              <span class="n8n-slider"></span>
+            </label>
+          </div>
+          <div class="profile-dropdown-divider"></div>
+          <button class="profile-dropdown-item-btn" id="btnChangeUser"
+            style="width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:13px; color:var(--text-main); font-weight:500; cursor:pointer;">Cambiar
+            Nombre</button>
+        </div>
       </div>
-      <ul class="channel-list" id="channelList">
-        <li class="channel-item active" data-channel="general">
-          <span class="channel-hash">#</span> general
-        </li>
-        <li class="channel-item" data-channel="desarrollo">
-          <span class="channel-hash">#</span> desarrollo
-          <span class="badge">3</span>
-        </li>
-        <li class="channel-item" data-channel="diseno">
-          <span class="channel-hash">#</span> diseño
-        </li>
-        <li class="channel-item" data-channel="random">
-          <span class="channel-hash">#</span> random
-        </li>
-        <li class="channel-item add-channel" id="btnAgregarCanal">
-          <span class="channel-plus">+</span> Agregar canal
-        </li>
-      </ul>
-    </div>
 
-    <!-- DMs section -->
-    <div class="sidebar-section">
-      <div class="sidebar-section-header" id="toggleDMs">
-        <svg class="section-arrow open" viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
-          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/>
-        </svg>
-        Mensajes directos
-        <button class="add-section-btn" title="Nuevo DM">+</button>
-      <ul class="dm-list" id="dmList">
-        <!-- DMs cargados dinámicamente -->
-      </ul>
+    </nav>
+    <!-- /SIDEBAR -->
 
-      <!-- NUEVO: Sección de usuarios en línea o para iniciar chat -->
-      <div class="sidebar-section-header" style="margin-top: 15px;">
-        <svg class="section-arrow open" viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
-          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/>
-        </svg>
-        Directorio (Clic para mensajear)
-      </div>
-      <ul class="dm-list" id="usersList">
-        <!-- Usuarios cargados dinámicamente -->
-      </ul>
-    </div>
-    </div> <!-- /Fin scrollable -->
+    <!-- ── CHAT AREA ─────────────────────────────────────────── -->
+    <main class="chat-area" id="chatArea">
 
-    <!-- Botón de Perfil & Menú (Bottom Sidebar) -->
-    <div class="profile-menu-container" style="flex-shrink: 0; position: relative; margin-top: auto; padding: 12px 16px; border-top: 1px solid rgba(255,255,255,0.08);">
-      <button class="profile-avatar-btn" id="btnProfile" title="Ver perfil y configuración" style="width: 100%; display: flex; align-items: center; justify-content: flex-start; gap: 10px; background: transparent; padding: 8px; border-radius: 6px;">
-        <span class="dm-avatar" id="profileInitials" style="background:#3B82F6">U</span>
-        <span id="profileNameDisplay" style="color: var(--slack-text); font-weight: 700; font-size: 14px;">Usuario</span>
-      </button>
-      
-      <div class="profile-dropdown" id="profileDropdown" style="display: none; bottom: 50px; left: 16px; top: auto; right: auto;">
-        <div class="profile-dropdown-header">
-          <div class="profile-dropdown-avatar" id="dropdownAvatar">U</div>
-          <div class="profile-dropdown-info">
-            <div class="profile-dropdown-name" id="dropdownName">Usuario</div>
-            <div class="profile-dropdown-status"><span class="conn-dot online" style="animation:none;"></span> Activo</div>
+      <!-- Chat header -->
+      <header class="chat-header">
+        <div class="chat-header-left">
+          <button class="header-action-btn sidebar-toggle-btn" id="btnToggleSidebar" title="Mostrar barra lateral"
+            style="margin-right: 4px;">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+              <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+            </svg>
+          </button>
+          <span class="chat-channel-icon" id="chatChannelIcon">#</span>
+          <h1 class="chat-channel-name" id="chatChannelName">general</h1>
+          <span class="chat-topic" id="chatTopic">Canal de comunicación general del equipo</span>
+        </div>
+        <div class="chat-header-right">
+          <span class="member-count" id="memberCount"></span>
+          <span id="connectionStatus" class="connection-status">
+            <span class="conn-dot online"></span>En línea
+          </span>
+
+          <button class="header-action-btn agenda-toggle-btn" title="Ver Agenda / Calendario" id="btnToggleRightPanel">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+              <path
+                d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
+            </svg>
+          </button>
+          <button class="header-action-btn" title="Chatbot" id="btnToggleChatbot">
+            <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+              <path
+                d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1v1a2 2 0 01-2 2H4a2 2 0 01-2-2v-1H1a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2zM9 11a2 2 0 100 4 2 2 0 000-4zm6 0a2 2 0 100 4 2 2 0 000-4z" />
+            </svg>
+          </button>
+          <!-- SWITCH n8n -->
+          <div class="n8n-toggle-wrap" title="Alternar entre n8n y IA local">
+            <label class="n8n-switch">
+              <input type="checkbox" id="n8nSwitch" />
+              <span class="n8n-slider"></span>
+            </label>
+            <span class="n8n-label" id="n8nLabel">n8n</span>
           </div>
         </div>
-        <div class="profile-dropdown-divider"></div>
-        <div class="profile-dropdown-item theme-switch-item" style="display:flex; justify-content:space-between; align-items:center; padding: 10px 14px;">
-          <span style="font-size:13px; font-weight:600; color:var(--text-main);">Modo Oscuro</span>
-          <label class="n8n-switch" style="width:34px; height:18px;">
-            <input type="checkbox" id="themeDarkSwitch" />
-            <span class="n8n-slider"></span>
-          </label>
+      </header>
+
+      <!-- Messages feed -->
+      <div class="messages-feed" id="messagesFeed">
+
+        <!-- Day divider -->
+        <div class="day-divider">
+          <span class="day-divider-line"></span>
+          <span class="day-divider-text" id="dayDividerText">Hoy</span>
+          <span class="day-divider-line"></span>
         </div>
-        <div class="profile-dropdown-divider"></div>
-        <button class="profile-dropdown-item-btn" id="btnChangeUser" style="width:100%; text-align:left; background:none; border:none; padding:10px 14px; font-size:13px; color:var(--text-main); font-weight:500; cursor:pointer;">Cambiar Nombre</button>
+
+        <!-- Welcome message -->
+        <div class="welcome-banner" id="welcomeBanner">
+          <div class="welcome-icon" id="welcomeIcon">#</div>
+          <h2>Bienvenido a <strong id="welcomeTitle">#general</strong></h2>
+          <p id="welcomeDesc">Este es el punto de inicio del canal <strong>#general</strong>. Aquí está el historial de
+            mensajes del canal.</p>
+        </div>
+
+        <!-- Messages will be injected here by chat.js -->
+
       </div>
-    </div>
 
-  </nav>
-  <!-- /SIDEBAR -->
-
-  <!-- ── CHAT AREA ─────────────────────────────────────────── -->
-  <main class="chat-area" id="chatArea">
-
-    <!-- Chat header -->
-    <header class="chat-header">
-      <div class="chat-header-left">
-        <span class="chat-channel-icon" id="chatChannelIcon">#</span>
-        <h1 class="chat-channel-name" id="chatChannelName">general</h1>
-        <span class="chat-topic" id="chatTopic">Canal de comunicación general del equipo</span>
-      </div>
-      <div class="chat-header-right">
-        <span class="member-count" id="memberCount"></span>
-        <span id="connectionStatus" class="connection-status">
-          <span class="conn-dot online"></span>En línea
+      <!-- Typing indicator -->
+      <div class="typing-area" id="typingArea" style="display:none">
+        <span class="typing-dots">
+          <span></span><span></span><span></span>
         </span>
+        <span class="typing-text" id="typingText">Alguien está escribiendo…</span>
+      </div>
 
-        <button class="header-action-btn" title="Chatbot" id="btnToggleChatbot">
-          <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
-            <path d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1v1a2 2 0 01-2 2H4a2 2 0 01-2-2v-1H1a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2zM9 11a2 2 0 100 4 2 2 0 000-4zm6 0a2 2 0 100 4 2 2 0 000-4z"/>
-          </svg>
-        </button>
-        <!-- SWITCH n8n -->
-        <div class="n8n-toggle-wrap" title="Alternar entre n8n y IA local">
-          <label class="n8n-switch">
-            <input type="checkbox" id="n8nSwitch" />
-            <span class="n8n-slider"></span>
-          </label>
-          <span class="n8n-label" id="n8nLabel">IA Local</span>
+      <!-- Input area -->
+      <div class="input-area">
+        <div class="input-toolbar">
+          <button class="toolbar-btn" title="Negrita" id="btnFormatBold"><strong>B</strong></button>
+          <button class="toolbar-btn" title="Cursiva" id="btnFormatItalic"><em>i</em></button>
+          <button class="toolbar-btn" title="Código" id="btnFormatCode">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+              <path fill-rule="evenodd"
+                d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" />
+            </svg>
+          </button>
+          <span class="toolbar-divider"></span>
+          <button class="toolbar-btn" title="Adjuntar archivo" id="btnAttach">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+              <path fill-rule="evenodd"
+                d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" />
+            </svg>
+          </button>
+          <button class="toolbar-btn" title="Emoji" id="btnEmoji">😊</button>
         </div>
-      </div>
-    </header>
 
-    <!-- Messages feed -->
-    <div class="messages-feed" id="messagesFeed">
-
-      <!-- Day divider -->
-      <div class="day-divider">
-        <span class="day-divider-line"></span>
-        <span class="day-divider-text" id="dayDividerText">Hoy</span>
-        <span class="day-divider-line"></span>
-      </div>
-
-      <!-- Welcome message -->
-      <div class="welcome-banner" id="welcomeBanner">
-        <div class="welcome-icon" id="welcomeIcon">#</div>
-        <h2>Bienvenido a <strong id="welcomeTitle">#general</strong></h2>
-        <p id="welcomeDesc">Este es el punto de inicio del canal <strong>#general</strong>. Aquí está el historial de mensajes del canal.</p>
-      </div>
-
-      <!-- Messages will be injected here by chat.js -->
-
-    </div>
-
-    <!-- Typing indicator -->
-    <div class="typing-area" id="typingArea" style="display:none">
-      <span class="typing-dots">
-        <span></span><span></span><span></span>
-      </span>
-      <span class="typing-text" id="typingText">Alguien está escribiendo…</span>
-    </div>
-
-    <!-- Input area -->
-    <div class="input-area">
-      <div class="input-toolbar">
-        <button class="toolbar-btn" title="Negrita" id="btnFormatBold"><strong>B</strong></button>
-        <button class="toolbar-btn" title="Cursiva" id="btnFormatItalic"><em>i</em></button>
-        <button class="toolbar-btn" title="Código" id="btnFormatCode">
-          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-            <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"/>
-          </svg>
-        </button>
-        <span class="toolbar-divider"></span>
-        <button class="toolbar-btn" title="Adjuntar archivo" id="btnAttach">
-          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
-            <path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z"/>
-          </svg>
-        </button>
-        <button class="toolbar-btn" title="Emoji" id="btnEmoji">😊</button>
-      </div>
-
-      <div class="input-box-wrap">
-        <textarea
-          id="chatInput"
-          class="chat-input"
-          placeholder="Mensaje en #general"
-          rows="1"
-        ></textarea>
-        <button class="send-btn" id="sendBtn" disabled>
-          <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
-            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
-          </svg>
-        </button>
-      </div>
-    </div>
-
-  </main>
-  <!-- /CHAT AREA -->
-
-  <!-- ── AGENDA PANEL ──────────────────────────────────────── -->
-  <aside class="agenda-panel" id="agendaPanel">
-
-    <div class="agenda-header">
-      <div>
-        <h2 class="agenda-title">📅 Agenda</h2>
-        <p class="agenda-date" id="agendaDate"></p>
-      </div>
-      <span class="agenda-count" id="agendaCount">0 eventos</span>
-    </div>
-
-    <!-- Integration status bar -->
-    <div class="integration-bar" id="integrationBar">
-      <span class="integration-dot local" id="integrationDot"></span>
-      <span class="integration-status-text" id="integrationStatusText">IA Local activa</span>
-    </div>
-
-    <!-- Events list -->
-    <div class="agenda-body" id="agendaBody">
-      <div class="agenda-empty" id="agendaEmpty">
-        <div class="agenda-empty-icon">🗓️</div>
-        <p>Sin eventos registrados</p>
-        <small>Escribe algo como:<br/><em>"nos vemos mañana a las 10"</em></small>
-      </div>
-    </div>
-
-  </aside>
-  <!-- /AGENDA PANEL -->
-
-  <!-- ── CHATBOT PANEL ─────────────────────────────────────── -->
-  <aside class="chatbot-panel" id="chatbotPanel" style="display:none">
-    <div class="chatbot-header">
-      <button class="chatbot-close-btn" id="btnCloseChatbot">×</button>
-    </div>
-    <div class="chatbot-body" style="display:flex; flex-direction:column; overflow:hidden; flex:1;">
-      <div id="chatbotIntro">
-      <div class="chatbot-icon-wrap">
-        <svg class="chatbot-logo-img" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-          <rect width="100" height="100" rx="20" fill="url(#botGrad)" />
-          <defs>
-            <linearGradient id="botGrad" x1="0" y1="0" x2="100" y2="100">
-              <stop offset="0%" stop-color="#36C5F0"/>
-              <stop offset="33%" stop-color="#2EB67D"/>
-              <stop offset="66%" stop-color="#E01E5A"/>
-              <stop offset="100%" stop-color="#ECB22E"/>
-            </linearGradient>
-          </defs>
-          <circle cx="35" cy="40" r="8" fill="#FFF"/>
-          <circle cx="65" cy="40" r="8" fill="#FFF"/>
-          <path d="M 35 60 Q 50 75 65 60" fill="none" stroke="#FFF" stroke-width="6" stroke-linecap="round"/>
-        </svg>
-      </div>
-      <h2 class="chatbot-title">¡Hola! Soy SLC BOT.</h2>
-      <p class="chatbot-desc">Puedo ayudarte a trabajar de la mejor manera en SlackC. Entre otras cosas, puedo hacer lo siguiente:</p>
-      
-      <div class="chatbot-actions">
-        <button class="chatbot-action-btn">
-          <span class="chatbot-btn-icon">🔍</span> Buscar y encontrar cosas
-        </button>
-        <button class="chatbot-action-btn">
-          <span class="chatbot-btn-icon">🧠</span> Crear y administrar contenido
-        </button>
-        <button class="chatbot-action-btn">
-          <span class="chatbot-btn-icon">📅</span> Administrar tu tiempo y tus datos
-        </button>
-      </div>
-      </div> <!-- /chatbotIntro -->
-
-      <!-- Chat history para el bot (nuevo) -->
-      <div id="chatbotHistory" style="flex:1; overflow-y:auto; margin-top:15px; border-top:1px solid var(--border-color); padding-top:10px; display:flex; flex-direction:column; gap:10px; font-size:13px; color:var(--text-main);">
-        <!-- Mensajes del bot aquí -->
-      </div>
-
-      <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px; flex-shrink:0;">
-        <div style="position:relative; width:100%;">
-          <input type="text" id="chatbotQuickInput" placeholder="Envía un mensaje a SLC BOT..." style="width:100%; padding:10px 40px 10px 12px; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-primary); color:var(--text-main); font-size:13px; outline:none;" autocomplete="off" />
-          <button id="btnDMtoBot" style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--slack-primary); display:flex; align-items:center; justify-content:center; padding:4px;">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        <div class="input-box-wrap">
+          <textarea id="chatInput" class="chat-input" placeholder="Mensaje en #general" rows="1"></textarea>
+          <button class="send-btn" id="sendBtn" disabled>
+            <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
+              <path
+                d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+            </svg>
           </button>
         </div>
       </div>
-      <a href="#" class="chatbot-link" id="btnNotifBot">Ir a notificaciones de SLC BOT</a>
+
+    </main>
+    <!-- /CHAT AREA -->
+
+    <!-- ── AGENDA PANEL ──────────────────────────────────────── -->
+    <aside class="agenda-panel" id="agendaPanel">
+
+      <div class="agenda-header">
+        <div>
+          <h2 class="agenda-title">📅 Agenda</h2>
+          <p class="agenda-date" id="agendaDate"></p>
+        </div>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span class="agenda-count" id="agendaCount">0 eventos</span>
+          <button class="agenda-close-btn" id="btnCloseAgenda"
+            style="display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-light); line-height: 1;">×</button>
+        </div>
+      </div>
+
+      <!-- Integration status bar -->
+      <div class="integration-bar" id="integrationBar">
+        <span class="integration-dot local" id="integrationDot"></span>
+        <span class="integration-status-text" id="integrationStatusText">IA Local activa</span>
+      </div>
+
+      <!-- Events list -->
+      <div class="agenda-body" id="agendaBody">
+        <div class="agenda-empty" id="agendaEmpty">
+          <div class="agenda-empty-icon">🗓️</div>
+          <p>Sin eventos registrados</p>
+          <small>Escribe algo como:<br /><em>"nos vemos mañana a las 10"</em></small>
+        </div>
+      </div>
+
+    </aside>
+    <!-- /AGENDA PANEL -->
+
+    <!-- ── CHATBOT PANEL ─────────────────────────────────────── -->
+    <aside class="chatbot-panel" id="chatbotPanel" style="display:none">
+      <div class="chatbot-header">
+        <button class="chatbot-close-btn" id="btnCloseChatbot">×</button>
+      </div>
+      <div class="chatbot-body" style="display:flex; flex-direction:column; overflow:hidden; flex:1;">
+        <div id="chatbotIntro">
+          <div class="chatbot-icon-wrap">
+            <svg class="chatbot-logo-img" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+              <rect width="100" height="100" rx="20" fill="url(#botGrad)" />
+              <defs>
+                <linearGradient id="botGrad" x1="0" y1="0" x2="100" y2="100">
+                  <stop offset="0%" stop-color="#36C5F0" />
+                  <stop offset="33%" stop-color="#2EB67D" />
+                  <stop offset="66%" stop-color="#E01E5A" />
+                  <stop offset="100%" stop-color="#ECB22E" />
+                </linearGradient>
+              </defs>
+              <circle cx="35" cy="40" r="8" fill="#FFF" />
+              <circle cx="65" cy="40" r="8" fill="#FFF" />
+              <path d="M 35 60 Q 50 75 65 60" fill="none" stroke="#FFF" stroke-width="6" stroke-linecap="round" />
+            </svg>
+          </div>
+          <h2 class="chatbot-title">¡Hola! Soy SLC BOT.</h2>
+          <p class="chatbot-desc">Puedo ayudarte a trabajar de la mejor manera en SlackC. Entre otras cosas, puedo hacer
+            lo siguiente:</p>
+
+          <div class="chatbot-actions">
+            <button class="chatbot-action-btn">
+              <span class="chatbot-btn-icon">🔍</span> Buscar y encontrar cosas
+            </button>
+            <button class="chatbot-action-btn">
+              <span class="chatbot-btn-icon">🧠</span> Crear y administrar contenido
+            </button>
+            <button class="chatbot-action-btn">
+              <span class="chatbot-btn-icon">📅</span> Administrar tu tiempo y tus datos
+            </button>
+          </div>
+        </div> <!-- /chatbotIntro -->
+
+        <!-- Chat history para el bot (nuevo) -->
+        <div id="chatbotHistory"
+          style="flex:1; overflow-y:auto; margin-top:15px; border-top:1px solid var(--border-color); padding-top:10px; display:flex; flex-direction:column; gap:10px; font-size:13px; color:var(--text-main);">
+          <!-- Mensajes del bot aquí -->
+        </div>
+
+        <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px; flex-shrink:0;">
+          <div style="position:relative; width:100%;">
+            <input type="text" id="chatbotQuickInput" placeholder="Envía un mensaje a SLC BOT..."
+              style="width:100%; padding:10px 40px 10px 12px; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-primary); color:var(--text-main); font-size:13px; outline:none;"
+              autocomplete="off" />
+            <button id="btnDMtoBot"
+              style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--slack-primary); display:flex; align-items:center; justify-content:center; padding:4px;">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+        <a href="#" class="chatbot-link" id="btnNotifBot">Ir a notificaciones de SLC BOT</a>
+      </div>
+    </aside>
+    <!-- /CHATBOT PANEL -->
+
+  </div>
+  <!-- /APP SHELL -->
+
+  <!-- Modal: Broma de Actualización de Plan -->
+  <div id="jokeModal" class="name-modal-overlay" style="display:none; z-index: 1000;">
+    <div class="name-modal-box" style="text-align: center;">
+      <div class="name-modal-icon">🤡</div>
+      <h2 class="name-modal-title">¡Es una broma!</h2>
+      <p class="name-modal-desc">No necesitas actualizar ningún plan, ¡SLC BOT es totalmente gratis! Te regalamos
+        preguntas ilimitadas.</p>
+      <button id="btnJokeModalClose" class="name-modal-btn">Seguir preguntando</button>
     </div>
-  </aside>
-  <!-- /CHATBOT PANEL -->
-
-</div>
-<!-- /APP SHELL -->
-
-<!-- Modal: Broma de Actualización de Plan -->
-<div id="jokeModal" class="name-modal-overlay" style="display:none; z-index: 1000;">
-  <div class="name-modal-box" style="text-align: center;">
-    <div class="name-modal-icon">🤡</div>
-    <h2 class="name-modal-title">¡Es una broma!</h2>
-    <p class="name-modal-desc">No necesitas actualizar ningún plan, ¡SLC BOT es totalmente gratis! Te regalamos preguntas ilimitadas.</p>
-    <button id="btnJokeModalClose" class="name-modal-btn">Seguir preguntando</button>
   </div>
-</div>
 
-<!-- Modal: pedir nombre de usuario -->
-<div id="nameModal" class="name-modal-overlay" style="display:none">
-  <div class="name-modal-box">
-    <div class="name-modal-icon">💬</div>
-    <h2 class="name-modal-title">Bienvenido a <strong>SlackC</strong></h2>
-    <p class="name-modal-desc">¿Cómo quieres que te vean los demás en el chat?</p>
-    <input
-      type="text"
-      id="nameInput"
-      class="name-modal-input"
-      placeholder="Tu nombre o apodo…"
-      maxlength="30"
-      autocomplete="off"
-    />
-    <button id="nameSubmitBtn" class="name-modal-btn">Entrar al canal →</button>
+  <!-- Modal: pedir nombre de usuario -->
+  <div id="nameModal" class="name-modal-overlay" style="display:none">
+    <div class="name-modal-box">
+      <div class="name-modal-icon">💬</div>
+      <h2 class="name-modal-title">Bienvenido a <strong>SlackC</strong></h2>
+      <p class="name-modal-desc">¿Cómo quieres que te vean los demás en el chat?</p>
+      <input type="text" id="nameInput" class="name-modal-input" placeholder="Tu nombre o apodo…" maxlength="30"
+        autocomplete="off" />
+      <button id="nameSubmitBtn" class="name-modal-btn">Entrar al canal →</button>
+    </div>
   </div>
-</div>
 
-<!-- ═══════════════════════════════════════════════════════════
+  <!-- ═══════════════════════════════════════════════════════════
      OVERLAY BÚSQUEDA
 ═══════════════════════════════════════════════════════════ -->
-<div class="search-overlay" id="searchOverlay">
-  <div class="search-modal anim-fade-up">
-    <div class="search-header">
-      <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
-        <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"/>
-      </svg>
-      <input type="text" id="searchInput" placeholder="Buscar mensajes o canales..." autocomplete="off">
-      <button class="close-btn" id="searchClose">×</button>
-    </div>
-    <div class="search-results" id="searchResults">
-      <!-- Resultados dinámicos -->
-    </div>
-  </div>
-</div>
-
-<!-- ═══════════════════════════════════════════════════════════
-     MODAL NUEVO CANAL
-═══════════════════════════════════════════════════════════ -->
-<div class="name-modal-overlay" id="newChannelModal" style="display: none;">
-  <div class="name-modal-box anim-fade-up">
-    <h2 class="name-modal-title">Crear un canal</h2>
-    <p class="name-modal-desc">Los canales son donde tu equipo se comunica. Es mejor organizarlos por tema (ej. #marketing).</p>
-    <div class="input-group">
-      <label for="newChannelInput">Nombre</label>
-      <div style="display:flex; align-items:center;">
-        <span style="padding-right:8px; color:var(--text-light)">#</span>
-        <input type="text" id="newChannelInput" class="name-modal-input" placeholder="ej. plan-lanzamiento" style="margin-top:0;" maxlength="30" autocomplete="off" />
+  <div class="search-overlay" id="searchOverlay">
+    <div class="search-modal anim-fade-up">
+      <div class="search-header">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+          <path fill-rule="evenodd"
+            d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" />
+        </svg>
+        <input type="text" id="searchInput" placeholder="Buscar mensajes o canales..." autocomplete="off">
+        <button class="close-btn" id="searchClose">×</button>
+      </div>
+      <div class="search-results" id="searchResults">
+        <!-- Resultados dinámicos -->
       </div>
     </div>
-    <div class="input-group" style="margin-top:16px;">
-      <label for="newChannelDesc">Descripción <span style="font-weight:normal; color:var(--text-light)">(opcional)</span></label>
-      <input type="text" id="newChannelDesc" class="name-modal-input" placeholder="¿De qué trata este canal?" maxlength="100" autocomplete="off" />
-    </div>
-    <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
-      <button class="header-action-btn" id="newChannelClose" style="border:1px solid #ccc; padding:8px 16px; border-radius:4px;">Cancelar</button>
-      <button class="name-modal-btn" id="newChannelSubmit" style="margin-top:0; padding:8px 16px;">Crear</button>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+     MODAL NUEVO CANAL
+═══════════════════════════════════════════════════════════ -->
+  <div class="name-modal-overlay" id="newChannelModal" style="display: none;">
+    <div class="name-modal-box anim-fade-up">
+      <h2 class="name-modal-title">Crear un canal</h2>
+      <p class="name-modal-desc">Los canales son donde tu equipo se comunica. Es mejor organizarlos por tema (ej.
+        #marketing).</p>
+      <div class="input-group">
+        <label for="newChannelInput">Nombre</label>
+        <div style="display:flex; align-items:center;">
+          <span style="padding-right:8px; color:var(--text-light)">#</span>
+          <input type="text" id="newChannelInput" class="name-modal-input" placeholder="ej. plan-lanzamiento"
+            style="margin-top:0;" maxlength="30" autocomplete="off" />
+        </div>
+      </div>
+      <div class="input-group" style="margin-top:16px;">
+        <label for="newChannelDesc">Descripción <span
+            style="font-weight:normal; color:var(--text-light)">(opcional)</span></label>
+        <input type="text" id="newChannelDesc" class="name-modal-input" placeholder="¿De qué trata este canal?"
+          maxlength="100" autocomplete="off" />
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+        <button class="header-action-btn" id="newChannelClose"
+          style="border:1px solid #ccc; padding:8px 16px; border-radius:4px;">Cancelar</button>
+        <button class="name-modal-btn" id="newChannelSubmit" style="margin-top:0; padding:8px 16px;">Crear</button>
+      </div>
     </div>
   </div>
-</div>
 
-<!-- Scripts — cargados al final para no bloquear render -->
-<script src="/socket.io/socket.io.js"></script>
-<script src="/js/agenda.js"></script>
-<script src="/js/chat.js"></script>
-<script src="/js/app.js"></script>
-<script src="/js/chatbot.js"></script>
+
+
+  <!-- ═══════════════════════════════════════════════════════════
+     MODAL ADMIN LOGIN
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="name-modal-overlay" id="adminLoginModal" style="display: none;">
+    <div class="name-modal-box anim-fade-up">
+      <h2 class="name-modal-title">Login</h2>
+      <p class="name-modal-desc">Inicia sesión</p>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 16px;">
+        <input type="text" id="adminUser" class="name-modal-input" placeholder="Usuario" autocomplete="off" />
+        <input type="password" id="adminPass" class="name-modal-input" placeholder="Contraseña" autocomplete="off" />
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:12px; margin-top:24px;">
+        <button class="header-action-btn" id="adminLoginClose"
+          style="border:1px solid #ccc; padding:8px 16px; border-radius:4px;">Cancelar</button>
+        <button class="name-modal-btn" id="adminLoginSubmit" style="margin-top:0; padding:8px 16px;">Entrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════
+     MODAL ADMIN DASHBOARD
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="name-modal-overlay" id="adminDashboardModal" style="display: none;">
+    <div class="name-modal-box anim-fade-up" style="max-width: 800px; width: 90%;">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 class="name-modal-title">Configuración - Panel de Usuarios</h2>
+        <button class="close-btn" id="adminDashboardClose"
+          style="background: none; border: none; font-size: 24px; color: var(--text-light); cursor: pointer;">&times;</button>
+      </div>
+
+      <div style="margin-top: 20px; overflow-x: auto;">
+        <table style="width: 100%; border-collapse: collapse; text-align: left; color: var(--slack-text);">
+          <thead>
+            <tr style="border-bottom: 2px solid rgba(0,0,0,0.1);">
+              <th style="padding: 10px;">Usuario</th>
+              <th style="padding: 10px;">Dispositivo (User-Agent)</th>
+              <th style="padding: 10px;">Última Conexión</th>
+              <th style="padding: 10px;">Estado</th>
+              <th style="padding: 10px;">Acción</th>
+            </tr>
+          </thead>
+          <tbody id="adminUsersTableBody">
+            <!-- Cargado por JS -->
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Scripts — cargados al final para no bloquear render -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/agenda.js"></script>
+  <script src="/js/chat.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/chatbot.js"></script>
+  <script src="/js/admin.js"></script>
 
 </body>
+
 </html>

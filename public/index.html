@@ -1,258 +1,320 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Fitness Pro Gym - Transforma tu cuerpo</title>
-    <meta name="description" content="El mejor gimnasio de la Ciudad de México. Únete a Fitness Pro Gym y transforma tu cuerpo con nuestras clases, entrenadores certificados y la mejor comunidad.">
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
-    <!-- AOS Animation CSS -->
-    <link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet">
-    <!-- Custom CSS -->
-    <link rel="stylesheet" href="css/style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlackC</title>
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <link rel="stylesheet" href="/css/slack.css" />
 </head>
 <body>
-    <!-- Navbar -->
-    <nav class="navbar">
-        <div class="logo">FITNESS PRO</div>
-        <ul class="nav-links">
-            <li><a href="#inicio">Inicio</a></li>
-            <li><a href="#clases">Clases</a></li>
-            <li><a href="#planes">Planes</a></li>
-            <li><a href="#entrenadores">Entrenadores</a></li>
-            <li><a href="#contacto">Contacto</a></li>
-        </ul>
-        <div class="hamburger">
-            <span></span>
-            <span></span>
-            <span></span>
-        </div>
-    </nav>
 
-    <!-- Hero Section -->
-    <header id="inicio" class="hero">
-        <div class="hero-content" data-aos="fade-up" data-aos-duration="1000">
-            <h1>Transforma tu cuerpo</h1>
-            <p>Descubre tu máximo potencial en el mejor gimnasio de la ciudad con instalaciones premium y entrenadores expertos.</p>
-            <a href="#planes" class="btn btn-primary">Únete hoy</a>
+<!-- ═══════════════════════════════════════════════════════════
+     APP SHELL
+═══════════════════════════════════════════════════════════ -->
+<div class="app-shell">
+
+  <!-- ── SIDEBAR (Slack-style) ─────────────────────────────── -->
+  <nav class="sidebar" id="sidebar">
+
+    <!-- Workspace header -->
+    <div class="sidebar-header">
+      <button class="workspace-btn" id="workspaceBtn">
+        <span class="workspace-name">SlackC</span>
+        <svg class="chevron-icon" viewBox="0 0 20 20" fill="currentColor">
+          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/>
+        </svg>
+      </button>
+      <button class="new-msg-btn" title="Nuevo mensaje" id="btnNuevoMensaje">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
+          <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 010 2H4a1 1 0 01-1-1zM3 16a1 1 0 011-1h6a1 1 0 010 2H4a1 1 0 01-1-1z"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Search -->
+    <div class="sidebar-search">
+      <button class="search-btn" id="searchBtn">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+          <path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z"/>
+        </svg>
+        Buscar en SlackC
+      </button>
+    </div>
+
+    <!-- Nav items -->
+    <div class="sidebar-nav">
+      <a class="sidebar-nav-item" href="#">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"/></svg>
+        Actividad
+      </a>
+      <a class="sidebar-nav-item" href="#">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
+        Mensajes directos
+      </a>
+      <a class="sidebar-nav-item" href="#">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M3 3a1 1 0 011-1h12a1 1 0 011 1v3a1 1 0 01-.293.707L12 11.414V15a1 1 0 01-.293.707l-2 2A1 1 0 018 17v-5.586L3.293 6.707A1 1 0 013 6V3z"/></svg>
+        Más tarde
+      </a>
+    </div>
+
+    <!-- Channels section -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-header" id="toggleChannels">
+        <svg class="section-arrow open" viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
+          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/>
+        </svg>
+        Canales
+        <button class="add-section-btn" title="Agregar canal">+</button>
+      </div>
+      <ul class="channel-list" id="channelList">
+        <li class="channel-item active" data-channel="general">
+          <span class="channel-hash">#</span> general
+        </li>
+        <li class="channel-item" data-channel="desarrollo">
+          <span class="channel-hash">#</span> desarrollo
+          <span class="badge">3</span>
+        </li>
+        <li class="channel-item" data-channel="diseno">
+          <span class="channel-hash">#</span> diseño
+        </li>
+        <li class="channel-item" data-channel="random">
+          <span class="channel-hash">#</span> random
+        </li>
+        <li class="channel-item add-channel" id="btnAgregarCanal">
+          <span class="channel-plus">+</span> Agregar canal
+        </li>
+      </ul>
+    </div>
+
+    <!-- DMs section -->
+    <div class="sidebar-section">
+      <div class="sidebar-section-header" id="toggleDMs">
+        <svg class="section-arrow open" viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
+          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/>
+        </svg>
+        Mensajes directos
+        <button class="add-section-btn" title="Nuevo DM">+</button>
+      </div>
+      <ul class="dm-list" id="dmList">
+        <li class="dm-item" data-dm="carlos">
+          <span class="dm-avatar" style="background:#E01E5A">C</span>
+          <span class="dm-name">Carlos Gómez</span>
+          <span class="presence online"></span>
+        </li>
+        <li class="dm-item" data-dm="ana">
+          <span class="dm-avatar" style="background:#2EB67D">A</span>
+          <span class="dm-name">Ana Martínez</span>
+          <span class="presence online"></span>
+        </li>
+        <li class="dm-item" data-dm="luis">
+          <span class="dm-avatar" style="background:#ECB22E">L</span>
+          <span class="dm-name">Luis Torres</span>
+          <span class="presence away"></span>
+        </li>
+        <li class="dm-item" data-dm="yo">
+          <span class="dm-avatar" style="background:#36C5F0">Tú</span>
+          <span class="dm-name">Tú (Notas)</span>
+          <span class="presence online"></span>
+        </li>
+      </ul>
+    </div>
+
+  </nav>
+  <!-- /SIDEBAR -->
+
+  <!-- ── CHAT AREA ─────────────────────────────────────────── -->
+  <main class="chat-area" id="chatArea">
+
+    <!-- Chat header -->
+    <header class="chat-header">
+      <div class="chat-header-left">
+        <span class="chat-channel-icon" id="chatChannelIcon">#</span>
+        <h1 class="chat-channel-name" id="chatChannelName">general</h1>
+        <span class="chat-topic" id="chatTopic">Canal de comunicación general del equipo</span>
+      </div>
+      <div class="chat-header-right">
+        <span class="member-count" id="memberCount"></span>
+        <span id="connectionStatus" class="connection-status">
+          <span class="conn-dot online"></span>En línea
+        </span>
+        <!-- SWITCH n8n -->
+        <div class="n8n-toggle-wrap" title="Alternar entre n8n y IA local">
+          <label class="n8n-switch">
+            <input type="checkbox" id="n8nSwitch" />
+            <span class="n8n-slider"></span>
+          </label>
+          <span class="n8n-label" id="n8nLabel">IA Local</span>
         </div>
-        <div class="hero-overlay"></div>
+      </div>
     </header>
 
-    <!-- Planes Section -->
-    <section id="planes" class="section">
-        <h2 class="section-title" data-aos="fade-up">Nuestros Planes</h2>
-        <div class="plans-container" data-aos="fade-up" data-aos-delay="200">
-            <div class="plan-card">
-                <h3>Básico</h3>
-                <div class="price">$450<span>/mes</span></div>
-                <ul>
-                    <li>Acceso a áreas de pesas y cardio</li>
-                    <li>Uso de lockers (diario)</li>
-                    <li>WiFi gratuito</li>
-                    <li>Regaderas</li>
-                </ul>
-                <button class="btn btn-outline">Elegir Plan</button>
-            </div>
-            <div class="plan-card premium">
-                <div class="badge">Más Popular</div>
-                <h3>Premium</h3>
-                <div class="price">$650<span>/mes</span></div>
-                <ul>
-                    <li>Todo del plan Básico</li>
-                    <li>Acceso a todas las clases</li>
-                    <li>Nutriólogo incluido</li>
-                    <li>Estacionamiento gratis</li>
-                    <li>1 invitado gratis al mes</li>
-                </ul>
-                <button class="btn btn-primary">Elegir Plan</button>
-            </div>
-            <div class="plan-card">
-                <h3>Anual</h3>
-                <div class="price">$5,000<span>/año</span></div>
-                <ul>
-                    <li>Todo del plan Premium</li>
-                    <li>Ahorro anual</li>
-                    <li>Inscripción gratuita</li>
-                    <li>Prioridad en clases</li>
-                </ul>
-                <button class="btn btn-outline">Elegir Plan</button>
-            </div>
-        </div>
-    </section>
+    <!-- Messages feed -->
+    <div class="messages-feed" id="messagesFeed">
 
-    <!-- Clases Section -->
-    <section id="clases" class="section section-dark">
-        <h2 class="section-title" data-aos="fade-up">Clases</h2>
-        <div class="classes-grid" data-aos="fade-up" data-aos-delay="200">
-            <div class="class-card">
-                <div class="class-icon">🏋️</div>
-                <h3>CrossFit</h3>
-                <p>Entrenamiento de alta intensidad para todo el cuerpo.</p>
-            </div>
-            <div class="class-card">
-                <div class="class-icon">🧘</div>
-                <h3>Yoga</h3>
-                <p>Encuentra tu equilibrio, flexibilidad y paz interior.</p>
-            </div>
-            <div class="class-card">
-                <div class="class-icon">🚴</div>
-                <h3>Spinning</h3>
-                <p>Quema calorías al ritmo de la música sobre ruedas.</p>
-            </div>
-            <div class="class-card">
-                <div class="class-icon">🔥</div>
-                <h3>HIIT</h3>
-                <p>Intervalos cortos y explosivos para máximos resultados.</p>
-            </div>
-        </div>
-    </section>
+      <!-- Day divider -->
+      <div class="day-divider">
+        <span class="day-divider-line"></span>
+        <span class="day-divider-text" id="dayDividerText">Hoy</span>
+        <span class="day-divider-line"></span>
+      </div>
 
-    <!-- Entrenadores Section -->
-    <section id="entrenadores" class="section">
-        <h2 class="section-title" data-aos="fade-up">Nuestros Entrenadores</h2>
-        <div class="trainers-grid" data-aos="fade-up" data-aos-delay="200">
-            <div class="trainer-card">
-                <div class="trainer-avatar trainer-1"></div>
-                <h3>Carlos</h3>
-                <p class="specialty">Especialidad: CrossFit</p>
-                <p class="schedule">Horario: Mañanas</p>
-            </div>
-            <div class="trainer-card">
-                <div class="trainer-avatar trainer-2"></div>
-                <h3>Ana</h3>
-                <p class="specialty">Especialidad: Yoga</p>
-                <p class="schedule">Horario: Tardes</p>
-            </div>
-            <div class="trainer-card">
-                <div class="trainer-avatar trainer-3"></div>
-                <h3>Luis</h3>
-                <p class="specialty">Especialidad: Spinning</p>
-                <p class="schedule">Horario: Noches</p>
-            </div>
-        </div>
-    </section>
+      <!-- Welcome message -->
+      <div class="welcome-banner">
+        <div class="welcome-icon">#</div>
+        <h2>Bienvenido a <strong>#general</strong></h2>
+        <p>Este es el punto de inicio del canal <strong>#general</strong>. Aquí está el historial de mensajes del canal.</p>
+      </div>
 
-    <!-- Testimonios Section -->
-    <section class="section section-dark">
-        <h2 class="section-title" data-aos="fade-up">Testimonios</h2>
-        <div class="testimonials-container" data-aos="fade-up" data-aos-delay="200">
-            <div class="testimonial">
-                <div class="stars">⭐⭐⭐⭐⭐</div>
-                <p>"El mejor gimnasio de la ciudad. Las clases de CrossFit con Carlos me han cambiado la vida."</p>
-                <h4>- Roberto G.</h4>
-            </div>
-            <div class="testimonial">
-                <div class="stars">⭐⭐⭐⭐⭐</div>
-                <p>"Instalaciones premium, muy limpio y el staff es súper amable. ¡Totalmente recomendado!"</p>
-                <h4>- Mariana V.</h4>
-            </div>
-        </div>
-    </section>
+      <!-- Messages will be injected here by chat.js -->
 
-    <!-- Footer -->
-    <footer id="contacto" class="footer">
-        <div class="footer-content">
-            <div class="footer-info">
-                <h3>Fitness Pro Gym</h3>
-                <p>Av. Insurgentes Sur 1234<br>Ciudad de México</p>
-                <p>WhatsApp: 55-5555-5555</p>
-                <p>contacto@fitnesspro.com</p>
-            </div>
-            <div class="footer-map">
-                <div class="map-placeholder" style="overflow: hidden; padding: 0;">
-                    <iframe src="https://maps.google.com/maps?q=Av.%20Insurgentes%20Sur%201234,%20Ciudad%20de%20M%C3%A9xico&t=&z=15&ie=UTF8&iwloc=&output=embed" width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy"></iframe>
-                </div>
-            </div>
-            <div class="footer-social">
-                <h3>Síguenos</h3>
-                <div class="social-icons">
-                    <a href="#">📱 Instagram</a>
-                    <a href="#">📘 Facebook</a>
-                    <a href="#">🐦 Twitter</a>
-                </div>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>&copy; 2026 Fitness Pro Gym. Todos los derechos reservados.</p>
-        </div>
-    </footer>
+    </div>
 
-    <!-- Chat Bot Widget -->
-    <div class="chat-widget" id="chatWidget">
-        <div class="chat-tooltip" id="chatTooltip">
-            <span>¿En qué te ayudo hoy? 🤖</span>
-            <button class="tooltip-close" id="tooltipClose" aria-label="Cerrar sugerencia">×</button>
-        </div>
-        <button class="chat-toggle" id="chatToggle">
-            <span class="icon">💬</span>
+    <!-- Typing indicator -->
+    <div class="typing-area" id="typingArea" style="display:none">
+      <span class="typing-dots">
+        <span></span><span></span><span></span>
+      </span>
+      <span class="typing-text" id="typingText">Alguien está escribiendo…</span>
+    </div>
+
+    <!-- Input area -->
+    <div class="input-area">
+      <div class="input-toolbar">
+        <button class="toolbar-btn" title="Negrita"><strong>B</strong></button>
+        <button class="toolbar-btn" title="Cursiva"><em>i</em></button>
+        <button class="toolbar-btn" title="Código">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+            <path fill-rule="evenodd" d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z"/>
+          </svg>
         </button>
-        <div class="chat-container glassmorphism" id="chatContainer">
-            <div class="chat-header">
-                <h3>GymBot AI 🤖</h3>
-                <button class="chat-close" id="chatClose">✖</button>
-            </div>
-            <div class="chat-messages" id="chatMessages">
-                <div class="message bot-message">
-                    Hola 👋<br>¿En qué puedo ayudarte hoy?
-                </div>
-                <!-- Messages will appear here -->
-            </div>
-            <div class="chat-quick-actions" id="quickActions">
-                <button class="quick-btn" data-query="¿Cuánto cuesta la membresía premium?">Precio Premium</button>
-                <button class="quick-btn" data-query="¿Cuál es el horario del gimnasio?">Horarios</button>
-                <button class="quick-btn" data-query="¿Qué clases tienen?">Clases</button>
-            </div>
-            <div class="chat-input-area">
-                <input type="text" id="chatInput" placeholder="Escribe tu mensaje..." aria-label="Mensaje">
-                <button id="chatSend" aria-label="Enviar">Enviar</button>
-            </div>
-        </div>
+        <span class="toolbar-divider"></span>
+        <button class="toolbar-btn" title="Adjuntar archivo">
+          <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+            <path fill-rule="evenodd" d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z"/>
+          </svg>
+        </button>
+        <button class="toolbar-btn" title="Emoji">😊</button>
+      </div>
+
+      <div class="input-box-wrap">
+        <textarea
+          id="chatInput"
+          class="chat-input"
+          placeholder="Mensaje en #general"
+          rows="1"
+        ></textarea>
+        <button class="send-btn" id="sendBtn" disabled>
+          <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
+            <path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z"/>
+          </svg>
+        </button>
+      </div>
     </div>
 
-    <!-- Modal de Registro -->
-    <div class="modal-overlay" id="registrationModal">
-        <div class="modal-content glassmorphism">
-            <button class="modal-close" id="modalClose">&times;</button>
-            <h2>¡Comienza tu Transformación! 🚀</h2>
-            <p>Completa tus datos para registrarte en el plan seleccionado y un asesor se pondrá en contacto contigo.</p>
-            <form id="registrationForm">
-                <input type="hidden" id="selectedPlanInput" name="plan">
-                <div class="form-group">
-                    <label for="regPlan">Plan Seleccionado</label>
-                    <input type="text" id="regPlan" class="form-control" readonly>
-                </div>
-                <div class="form-group">
-                    <label for="regName">Nombre Completo</label>
-                    <input type="text" id="regName" class="form-control" placeholder="Ej. Juan Pérez" required>
-                </div>
-                <div class="form-group">
-                    <label for="regEmail">Correo Electrónico</label>
-                    <input type="email" id="regEmail" class="form-control" placeholder="Ej. juan@correo.com" required>
-                </div>
-                <div class="form-group">
-                    <label for="regPhone">Teléfono / WhatsApp</label>
-                    <input type="tel" id="regPhone" class="form-control" placeholder="Ej. 55-1234-5678" required>
-                </div>
-                <button type="submit" class="btn btn-primary btn-block">Confirmar Registro</button>
-            </form>
-            <div class="modal-success" id="modalSuccess">
-                <div class="success-icon">✓</div>
-                <h3>¡Registro Recibido!</h3>
-                <p>Tu solicitud ha sido enviada. Muy pronto nos pondremos en contacto contigo por WhatsApp o Correo.</p>
-            </div>
-        </div>
+  </main>
+  <!-- /CHAT AREA -->
+
+  <!-- ── AGENDA PANEL ──────────────────────────────────────── -->
+  <aside class="agenda-panel" id="agendaPanel">
+
+    <div class="agenda-header">
+      <div>
+        <h2 class="agenda-title">📅 Agenda</h2>
+        <p class="agenda-date" id="agendaDate"></p>
+      </div>
+      <span class="agenda-count" id="agendaCount">0 eventos</span>
     </div>
 
-    <!-- AOS Script -->
-    <script src="https://unpkg.com/aos@2.3.1/dist/aos.js"></script>
-    <script>
-        AOS.init();
-    </script>
-    <!-- App Logic -->
-    <script src="js/app.js"></script>
+    <!-- Integration status bar -->
+    <div class="integration-bar" id="integrationBar">
+      <span class="integration-dot local" id="integrationDot"></span>
+      <span class="integration-status-text" id="integrationStatusText">IA Local activa</span>
+    </div>
+
+    <!-- Events list -->
+    <div class="agenda-body" id="agendaBody">
+      <div class="agenda-empty" id="agendaEmpty">
+        <div class="agenda-empty-icon">🗓️</div>
+        <p>Sin eventos registrados</p>
+        <small>Escribe algo como:<br/><em>"nos vemos mañana a las 10"</em></small>
+      </div>
+    </div>
+
+  </aside>
+  <!-- /AGENDA PANEL -->
+
+  <!-- ── CHATBOT PANEL ─────────────────────────────────────── -->
+  <aside class="chatbot-panel" id="chatbotPanel" style="display:none">
+    <div class="chatbot-header">
+      <button class="chatbot-close-btn" id="btnCloseChatbot">×</button>
+    </div>
+    <div class="chatbot-body">
+      <div class="chatbot-icon-wrap">
+        <svg class="chatbot-logo-img" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100" height="100" rx="20" fill="url(#botGrad)" />
+          <defs>
+            <linearGradient id="botGrad" x1="0" y1="0" x2="100" y2="100">
+              <stop offset="0%" stop-color="#36C5F0"/>
+              <stop offset="33%" stop-color="#2EB67D"/>
+              <stop offset="66%" stop-color="#E01E5A"/>
+              <stop offset="100%" stop-color="#ECB22E"/>
+            </linearGradient>
+          </defs>
+          <circle cx="35" cy="40" r="8" fill="#FFF"/>
+          <circle cx="65" cy="40" r="8" fill="#FFF"/>
+          <path d="M 35 60 Q 50 75 65 60" fill="none" stroke="#FFF" stroke-width="6" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <h2 class="chatbot-title">¡Hola! Soy Slackbot.</h2>
+      <p class="chatbot-desc">Puedo ayudarte a trabajar de la mejor manera en Slack. Entre otras cosas, puedo hacer lo siguiente:</p>
+      
+      <div class="chatbot-actions">
+        <button class="chatbot-action-btn">
+          <span class="chatbot-btn-icon">🔍</span> Buscar y encontrar cosas
+        </button>
+        <button class="chatbot-action-btn">
+          <span class="chatbot-btn-icon">🧠</span> Crear y administrar contenido
+        </button>
+        <button class="chatbot-action-btn">
+          <span class="chatbot-btn-icon">📅</span> Administrar tu tiempo y tus datos
+        </button>
+      </div>
+
+      <button class="chatbot-upgrade-btn">Ascender de plan ahora</button>
+      <a href="#" class="chatbot-link">No, gracias. Quiero ir a las notificaciones de Slackbot</a>
+    </div>
+  </aside>
+  <!-- /CHATBOT PANEL -->
+
+</div>
+<!-- /APP SHELL -->
+
+<!-- Modal: pedir nombre de usuario -->
+<div id="nameModal" class="name-modal-overlay" style="display:none">
+  <div class="name-modal-box">
+    <div class="name-modal-icon">💬</div>
+    <h2 class="name-modal-title">Bienvenido a <strong>SlackC</strong></h2>
+    <p class="name-modal-desc">¿Cómo quieres que te vean los demás en el chat?</p>
+    <input
+      type="text"
+      id="nameInput"
+      class="name-modal-input"
+      placeholder="Tu nombre o apodo…"
+      maxlength="30"
+      autocomplete="off"
+    />
+    <button id="nameSubmitBtn" class="name-modal-btn">Entrar al canal →</button>
+  </div>
+</div>
+
+<!-- Scripts — cargados al final para no bloquear render -->
+<script src="/socket.io/socket.io.js"></script>
+<script src="/js/agenda.js"></script>
+<script src="/js/chat.js"></script>
+<script src="/js/app.js"></script>
+
 </body>
 </html>

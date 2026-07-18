@@ -1,24 +1,48 @@
+'use strict';
+
 require('dotenv').config();
-const express = require('express');
-const cors = require('cors');
-const path = require('path');
-const chatRoutes = require('./routes/chat');
-const registrationRoutes = require('./routes/registration');
-const { initDb } = require('./services/db');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+const express    = require('express');
+const http       = require('http');
+const path       = require('path');
+const { Server } = require('socket.io');
 
-app.use(cors());
+const { conectarDB }    = require('./config/db');
+const apiRoutes         = require('./routes/apiRoutes');
+const { socketHandler } = require('./sockets/socketHandler');
+
+// ─── Express ──────────────────────────────────────────────────
+const app    = express();
+const server = http.createServer(app);
+
+// ─── Socket.io ────────────────────────────────────────────────
+const io = new Server(server, {
+  cors: { origin: '*' },           // ajusta en producción
+  transports: ['websocket', 'polling'],
+});
+
+// ─── Middleware ───────────────────────────────────────────────
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, 'public')));
 
-app.use('/chat', chatRoutes);
-app.use('/register', registrationRoutes);
+// ─── Rutas REST ───────────────────────────────────────────────
+app.use('/api', apiRoutes);
 
-// Initialize database tables
-initDb();
-
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+// ─── Ruta raíz → entrega el frontend ─────────────────────────
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
+
+// ─── Socket.io: delegar lógica al handler ────────────────────
+socketHandler(io);
+
+// ─── Arranque ─────────────────────────────────────────────────
+const PORT = process.env.PORT || 3000;
+
+(async () => {
+  await conectarDB();          // primero BD, luego servidor
+  server.listen(PORT, () => {
+    console.log(`🚀 Servidor escuchando en http://localhost:${PORT}`);
+  });
+})();

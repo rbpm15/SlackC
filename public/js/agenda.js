@@ -64,11 +64,15 @@ function crearMiniCalendario() {
         ${DIAS_CORTO.map(d => `<span class="cal-day-label">${d}</span>`).join('')}
       </div>
       <div class="mini-cal-grid">${celdas}</div>
-      <div class="mini-cal-footer">
-        <span class="today-badge">📍 Hoy: ${diaHoy} de ${MESES_ES[mes]}</span>
-      </div>
     </div>
-    <p class="mini-cal-empty-text">Sin eventos registrados</p>
+    <div style="margin: 16px 20px 8px; font-size: 14px; font-weight: 700; color: var(--text-main); border-bottom: 1px solid var(--border-color); padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+      <span>Próximos eventos</span>
+      <button onclick="AgendaModule.abrirModalRegistro()" title="Registrar nuevo evento" style="background:none; border:none; color:var(--slack-primary); cursor:pointer; font-size:20px; font-weight:bold; display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:4px; line-height:1; transition:background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.05)';" onmouseout="this.style.background='none';">+</button>
+    </div>
+    <div id="emptyEventsContainer" style="display: none; text-align: center; padding: 20px 10px;">
+      <p id="emptyEventsText" class="mini-cal-empty-text" style="display:block; margin-bottom: 12px;">Sin eventos registrados</p>
+      <button id="btnRegistrarAhora" class="name-modal-btn" style="display: none; margin: 0 auto; padding: 6px 12px; font-size: 13px; width: auto;" onclick="AgendaModule.abrirModalRegistro()">Registrar ahora</button>
+    </div>
   `;
 }
 
@@ -87,13 +91,19 @@ function actualizarContador() {
     if (!agendaBodyEl.querySelector('.mini-calendar')) {
       agendaBodyEl.innerHTML = crearMiniCalendario();
     } else {
-      const txt = agendaBodyEl.querySelector('.mini-cal-empty-text');
-      if (txt) txt.style.display = 'block';
+      const emptyCont = agendaBodyEl.querySelector('#emptyEventsContainer');
+      if (emptyCont) {
+        emptyCont.style.display = 'block';
+        document.getElementById('emptyEventsText').textContent = 'Sin eventos registrados';
+        document.getElementById('btnRegistrarAhora').style.display = 'none';
+      }
     }
   } else {
-    // Ocultar solo el texto de "Sin eventos", no el calendario
-    const txt = agendaBodyEl.querySelector('.mini-cal-empty-text');
-    if (txt) txt.style.display = 'none';
+    const selectedDay = document.querySelector('.cal-cell.selected-day');
+    if (!selectedDay) {
+      const emptyCont = agendaBodyEl.querySelector('#emptyEventsContainer');
+      if (emptyCont) emptyCont.style.display = 'none';
+    }
   }
 }
 
@@ -280,45 +290,122 @@ const AgendaModule = {
     document.querySelectorAll('.cal-cell').forEach(c => c.classList.remove('selected-day'));
     
     const cards = document.querySelectorAll('.event-card');
+    const emptyCont = document.getElementById('emptyEventsContainer');
+    const emptyText = document.getElementById('emptyEventsText');
+    const btnRegistrar = document.getElementById('btnRegistrarAhora');
     
     if (isSelected) {
-      // Si ya estaba seleccionado, preguntar si quiere agregar un evento manual
-      const manual = prompt(`¿Agregar evento manualmente para el día ${diaNum}?\nEscribe la hora y el título (ej: 15:00 hrs Reunión de equipo):`);
-      if (manual && manual.trim() !== '') {
-        // Enviar al servidor como evento manual
-        const evt = {
-          titulo: manual.trim(),
-          dia: `Día ${diaNum}`,
-          diaNum: diaNum,
-          hora: 'Por definir', // Se podría extraer con regex pero por simplicidad
-          autor: 'Usuario (Manual)',
-          fuente: 'local'
-        };
-        // Emitir al socket si existe la función, o agregarlo localmente
-        if (typeof socket !== 'undefined') {
-          socket.emit('nuevo_mensaje', { 
-            texto: `Evento manual: ${manual} el día ${diaNum}`, 
-            channelId: 'agenda', 
-            autor: 'Sistema' 
-          });
-        }
-      }
-      
-      // Quitar selección y mostrar todos
       cell.classList.remove('selected-day');
       cards.forEach(c => c.style.display = 'block');
+      
+      if (cards.length === 0) {
+        if (emptyCont) {
+          emptyCont.style.display = 'block';
+          emptyText.textContent = 'Sin eventos registrados';
+          if (btnRegistrar) btnRegistrar.style.display = 'none';
+          AgendaModule.selectedDate = null;
+        }
+      } else {
+        if (emptyCont) emptyCont.style.display = 'none';
+      }
     } else {
       // Seleccionar este y filtrar
       cell.classList.add('selected-day');
+      let visibles = 0;
       cards.forEach(c => {
         if (c.dataset.diaNum == diaNum) {
           c.style.display = 'block';
+          visibles++;
         } else {
           c.style.display = 'none';
         }
       });
+      
+      if (visibles === 0) {
+        if (emptyCont) {
+          emptyCont.style.display = 'block';
+          emptyText.textContent = 'No hay eventos registrados en esta fecha';
+          if (btnRegistrar) btnRegistrar.style.display = 'inline-block';
+          
+          const hoy = new Date();
+          const mes = (hoy.getMonth() + 1).toString().padStart(2, '0');
+          const d = diaNum.toString().padStart(2, '0');
+          AgendaModule.selectedDate = `${hoy.getFullYear()}-${mes}-${d}`;
+        }
+      } else {
+        if (emptyCont) emptyCont.style.display = 'none';
+      }
     }
   },
+
+  selectedDate: null,
+
+  abrirModalRegistro() {
+    const modal = document.getElementById('newEventModal');
+    if (!modal) return;
+    
+    document.getElementById('newEventTitle').value = '';
+    document.getElementById('newEventTime').value = '';
+    document.getElementById('newEventDesc').value = '';
+    
+    const dateInput = document.getElementById('newEventDate');
+    if (this.selectedDate) {
+      dateInput.value = this.selectedDate;
+    } else {
+      const hoy = new Date();
+      const mes = (hoy.getMonth() + 1).toString().padStart(2, '0');
+      const d = hoy.getDate().toString().padStart(2, '0');
+      dateInput.value = `${hoy.getFullYear()}-${mes}-${d}`;
+    }
+    
+    modal.style.display = 'flex';
+  },
+
+  cerrarModalRegistro() {
+    const modal = document.getElementById('newEventModal');
+    if (modal) modal.style.display = 'none';
+  },
+
+  async guardarEventoManual() {
+    const titulo = document.getElementById('newEventTitle').value.trim();
+    const fecha = document.getElementById('newEventDate').value;
+    const hora = document.getElementById('newEventTime').value;
+    const desc = document.getElementById('newEventDesc').value.trim();
+    
+    if (!titulo || !fecha || !hora) {
+      alert('Por favor completa el título, fecha y horario.');
+      return;
+    }
+    
+    const diaNum = parseInt(fecha.split('-')[2], 10);
+    const autor = document.getElementById('profileNameDisplay')?.textContent || 'Usuario';
+    
+    const evt = {
+      titulo: titulo,
+      dia: `Día ${diaNum}`,
+      diaNum: diaNum,
+      hora: hora,
+      autor: autor,
+      fuente: 'local',
+      desc: desc
+    };
+    
+    try {
+      const res = await fetch('/api/events', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(evt)
+      });
+      const data = await res.json();
+      if (data.ok) {
+        this.cerrarModalRegistro();
+      } else {
+        alert('Error: ' + data.error);
+      }
+    } catch (e) {
+      alert('Error al guardar el evento.');
+    }
+  }
 };
 
 window.AgendaModule = AgendaModule;

@@ -263,3 +263,110 @@
 .profile-dropdown-item-btn:hover {
   background: var(--bg-secondary) !important;
 }
+
+/* ── Clean Style Modals (Registrar Evento, Login, etc.) ─────────── */
+.clean-modal-box {
+  background: var(--bg-primary) !important;
+  border-radius: 12px !important;
+  padding: 32px 24px !important;
+  width: 360px !important;
+  max-width: 90vw !important;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.15) !important;
+  border: 1px solid var(--border-color) !important;
+  text-align: center;
+}
+
+.clean-modal-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-main);
+  margin-bottom: 8px;
+  text-align: center;
+}
+
+.clean-modal-desc {
+  font-size: 13px;
+  color: var(--text-light);
+  margin-bottom: 24px;
+  line-height: 1.4;
+  text-align: center;
+}
+
+.clean-input-group {
+  margin-top: 20px;
+  text-align: left;
+}
+
+.clean-input-group label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 4px;
+  display: block;
+  text-align: left;
+}
+
+.clean-input-row {
+  display: flex;
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.clean-modal-input-line {
+  width: 100%;
+  border: none !important;
+  border-bottom: 1px solid var(--border-color) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  padding: 8px 0 !important;
+  outline: none;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text-main);
+  transition: border-color 0.2s;
+}
+
+.clean-modal-input-line:focus {
+  border-bottom-color: #2563eb !important;
+}
+
+.clean-modal-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 32px;
+}
+
+.clean-modal-btn-cancel {
+  background: transparent !important;
+  border: none !important;
+  color: var(--text-light) !important;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 8px 0 !important;
+  font-weight: 500;
+  font-family: inherit;
+}
+
+.clean-modal-btn-cancel:hover {
+  color: var(--text-main) !important;
+}
+
+.clean-modal-btn-submit {
+  background: #2563eb !important;
+  color: white !important;
+  border: none !important;
+  border-radius: 6px !important;
+  padding: 10px 24px !important;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.5px;
+  font-family: inherit;
+  transition: background-color 0.2s;
+}
+
+.clean-modal-btn-submit:hover {
+  background: #1d4ed8 !important;
+}
+

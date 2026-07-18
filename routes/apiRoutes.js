@@ -252,6 +252,30 @@ router.get('/events', async (req, res) => {
   }
 });
 
+// POST /api/events
+router.post('/events', async (req, res) => {
+  try {
+    const { titulo, dia, diaNum, hora, autor, fuente, desc } = req.body;
+    const evento = await Event.create({
+      titulo: desc ? `${titulo} - ${desc}` : titulo,
+      dia: dia,
+      diaNum: diaNum,
+      hora: hora,
+      autor: autor || 'Usuario',
+      fuente: fuente || 'local'
+    });
+    
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('evento_detectado', evento);
+    }
+    res.json({ ok: true, data: evento });
+  } catch (err) {
+    console.error('[API] POST /events:', err.message);
+    res.status(500).json({ ok: false, error: 'Error creando evento.' });
+  }
+});
+
 // DELETE /api/events/:id
 router.delete('/events/:id', async (req, res) => {
   try {

@@ -11,16 +11,32 @@ const OPENROUTER_URL     = 'https://openrouter.ai/api/v1/chat/completions';
 const AI_MODEL           = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free'; // modelo configurable
 
 // ── Fallback Regex ────────────────────────────────────────────
-const PATRON_CITA = /\b(?:nos\s+vemos|quedamos|reuni[oó]n|junta|cita|llamada|videollamada|meet(?:ing)?|agend(?:ar)?|vemos|vernos|pasamos)\b[^.!?]{0,80}\b(ma[nñ]ana|hoy|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b[^.!?]{0,40}\ba\s+las?\s+(\d{1,2}(?::\d{2})?)\s*(am|pm|hrs?|h)?\b/i;
+const PATRON_CITA = /\b(?:nos\s+vemos|quedamos|reuni[oó]n|junta|cita|llamada|videollamada|meet(?:ing)?|agend(?:ar)?|vemos|vernos|pasamos)\b[^.!?]{0,80}\b(ma[nñ]ana|hoy|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo)\b(?:[^.!?]{0,40}\ba\s+las?\s+(\d{1,2}(?::\d{2})?)\s*(am|pm|hrs?|h)?\b)?/i;
 
 function detectarCitaRegex(texto) {
   const match = texto.match(PATRON_CITA);
   if (!match) return null;
 
-  const dia  = match[1].charAt(0).toUpperCase() + match[1].slice(1).toLowerCase();
-  const hora = match[2] + (match[3] ? ' ' + match[3].toLowerCase().replace(/\./g, '') : ':00 hrs');
+  const diaOriginal = match[1].toLowerCase();
+  let dia  = diaOriginal.charAt(0).toUpperCase() + diaOriginal.slice(1);
+  let diaNum = null;
 
-  return { dia, hora };
+  const hoy = new Date();
+  if (diaOriginal === 'hoy') {
+    diaNum = hoy.getDate();
+  } else if (diaOriginal === 'mañana' || diaOriginal === 'manana') {
+    const manana = new Date(hoy);
+    manana.setDate(manana.getDate() + 1);
+    diaNum = manana.getDate();
+    dia = "Mañana";
+  }
+
+  let hora = "09:00 - 14:00 hrs";
+  if (match[2]) {
+    hora = match[2] + (match[3] ? ' ' + match[3].toLowerCase().replace(/\./g, '') : ':00 hrs');
+  }
+
+  return { dia, hora, diaNum };
 }
 
 // ── Detección con IA via OpenRouter ──────────────────────────
@@ -37,11 +53,22 @@ async function detectarCitaIA(texto) {
   }
 
   const hoy = new Date();
-  const SYSTEM_PROMPT = `Eres un extractor de eventos de calendario. Hoy es ${hoy.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
+  const manana = new Date(hoy);
+  manana.setDate(manana.getDate() + 1);
+
+  const fechaHoy = hoy.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+  const fechaManana = manana.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
+  const SYSTEM_PROMPT = `Eres un extractor de eventos de calendario. 
+Hoy es ${fechaHoy}. Mañana es ${fechaManana}.
 Analiza el siguiente mensaje de chat y determina si contiene una cita, reunión, encuentro o evento agendado.
-Responde SOLO con un JSON válido en este formato exacto:
-{"detectado": true, "dia": "Mañana", "hora": "10:00 hrs", "titulo": "texto resumido del evento", "diaNum": 18}
-donde "diaNum" es el número de día del mes (1-31) correspondiente a la fecha del evento. Si NO hay ninguna cita o evento, responde SOLO:
+Reglas:
+1. Si el mensaje dice "mañana", debes usar la fecha correspondiente al día de mañana y su respectivo número de día en "diaNum".
+2. Si el mensaje menciona una fecha pero NO menciona una hora específica (por ejemplo "nos vemos el 21 de julio"), asume que es un evento de todo el día y asigna el horario por defecto "09:00 - 14:00 hrs" en el campo "hora".
+3. Responde SOLO con un JSON válido en este formato exacto:
+{"detectado": true, "dia": "Mañana (o la fecha exacta)", "hora": "10:00 hrs", "titulo": "texto resumido del evento", "diaNum": 18}
+donde "diaNum" es el número de día del mes (1-31) numérico correspondiente a la fecha del evento.
+Si NO hay ninguna cita o evento, responde SOLO:
 {"detectado": false}
 No escribas nada más, solo el JSON.`;
 
@@ -89,7 +116,7 @@ No escribas nada más, solo el JSON.`;
     // Fallback: Regex
     const cita = detectarCitaRegex(texto);
     if (!cita) return null;
-    return { ...cita, titulo: texto.slice(0, 80) };
+    return { ...cita, titulo: texto.slice(0, 80), diaNum: cita.diaNum || null };
   }
 }
 

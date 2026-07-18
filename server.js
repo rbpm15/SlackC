@@ -20,6 +20,7 @@ const io = new Server(server, {
   cors: { origin: '*' },           // ajusta en producción
   transports: ['websocket', 'polling'],
 });
+app.set('io', io);
 
 // ─── Middleware ───────────────────────────────────────────────
 app.use(express.json());

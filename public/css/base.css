@@ -60,13 +60,14 @@ body.theme-dark {
   --input-border:      #4A4A4A;
 }
 
-html, body { height: 100%; overflow: hidden; }
+html, body { height: 100%; height: 100dvh; overflow: hidden; }
 body { font-family: var(--font-main); font-size: var(--font-size-base); background: var(--slack-purple); color: var(--text-main); }
 
 /* ── App Shell ────────────────────────────────────────────────── */
 .app-shell {
   display: flex;
   height: 100vh;
+  height: 100dvh;
   overflow: hidden;
 }
 
@@ -184,6 +185,7 @@ input:checked + .n8n-slider:before {
     width: var(--agenda-w) !important;
     min-width: var(--agenda-w) !important;
     height: 100vh !important;
+    height: 100dvh !important;
     z-index: 100 !important;
     transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     box-shadow: -4px 0 20px rgba(0, 0, 0, 0.25) !important;
@@ -214,6 +216,7 @@ input:checked + .n8n-slider:before {
     width: var(--sidebar-w) !important;
     min-width: var(--sidebar-w) !important;
     height: 100vh !important;
+    height: 100dvh !important;
     z-index: 100 !important;
     transition: left 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
     box-shadow: 4px 0 20px rgba(0, 0, 0, 0.25) !important;

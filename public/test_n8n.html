@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SlacIA - Probador de Webhook n8n</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-main: #f4f5f6;
+      --bg-card: #ffffff;
+      --text-main: #1d1c1d;
+      --text-muted: #616061;
+      --primary: #4a154b;
+      /* Slack purple */
+      --primary-hover: #350d39;
+      --border: #dddddd;
+      --success: #2eb67d;
+      --error: #e01e5a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-main);
+      color: var(--text-main);
+      padding: 40px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 650px;
+      background: var(--bg-card);
+      border-radius: 12px;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      padding: 30px;
+      border: 1px solid rgba(0, 0, 0, 0.05);
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    p.subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 24px;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input[type="text"],
+    textarea {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input[type="text"]:focus,
+    textarea:focus {
+      border-color: var(--primary);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    .presets {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 8px;
+    }
+
+    .preset-btn {
+      background: #f8f8f8;
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 6px 14px;
+      font-size: 12px;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .preset-btn:hover {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .btn-submit {
+      width: 100%;
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 14px;
+      border-radius: 8px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-submit:hover {
+      background: var(--primary-hover);
+    }
+
+    .btn-submit:disabled {
+      background: #ccc;
+      cursor: not-allowed;
+    }
+
+    .response-area {
+      margin-top: 24px;
+      border-top: 1px solid var(--border);
+      padding-top: 20px;
+      display: none;
+    }
+
+    .response-status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 4px 10px;
+      border-radius: 12px;
+      margin-bottom: 12px;
+    }
+
+    .response-status.success {
+      background-color: rgba(46, 182, 125, 0.1);
+      color: var(--success);
+    }
+
+    .response-status.error {
+      background-color: rgba(224, 30, 90, 0.1);
+      color: var(--error);
+    }
+
+    pre {
+      background: #1e1e1e;
+      color: #d4d4d4;
+      padding: 15px;
+      border-radius: 8px;
+      font-family: 'Courier New', Courier, monospace;
+      font-size: 13px;
+      overflow-x: auto;
+      max-height: 250px;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="container">
+    <h1>⚙️ Probador de Webhook n8n</h1>
+    <p class="subtitle">Envía mensajes de prueba a tu webhook de n8n y visualiza el análisis estructurado de la IA.</p>
+
+    <div class="form-group">
+      <label for="webhookUrl">URL del Webhook de n8n</label>
+      <input type="text" id="webhookUrl" placeholder="http://localhost:5678/webhook/..."
+        value="http://localhost:5678/webhook-test/slacia-webhook">
+    </div>
+
+    <div class="form-group">
+      <label for="message">Mensaje a Enviar</label>
+      <textarea id="message" placeholder="Escribe algo aquí..."></textarea>
+
+      <div class="presets">
+        <button class="preset-btn" onclick="setPreset(1)">📅 Reunión Interna</button>
+        <button class="preset-btn" onclick="setPreset(2)">📧 Cliente por Correo</button>
+        <button class="preset-btn" onclick="setPreset(3)">📱 Cliente por Telegram</button>
+        <button class="preset-btn" onclick="setPreset(4)">💬 Mensaje Común</button>
+      </div>
+    </div>
+
+    <button id="sendBtn" class="btn-submit" onclick="sendToWebhook()">
+      <span>ENVIAR AL WEBHOOK</span>
+    </button>
+
+    <div class="response-area" id="responseArea">
+      <label>Respuesta del Webhook</label>
+      <div id="statusBadge"></div>
+      <pre><code id="jsonResponse"></code></pre>
+    </div>
+  </div>
+
+  <script>
+    const presets = {
+      1: "Reunión mañana a las 10:00 am con el equipo de desarrollo para planificar el sprint.",
+      2: "Agendar reunión para el lunes 20 de julio a las 15:30 con el cliente robert@ejemplo.com para la firma del acuerdo.",
+      3: "Necesito agendar una cita con el cliente 8602259620 el próximo viernes a las 11:00 am para revisar la propuesta.",
+      4: "Hola equipo, buenos días. ¿Alguien tiene listos los mockups de la UI?"
+    };
+
+    function setPreset(id) {
+      document.getElementById('message').value = presets[id];
+    }
+
+    async function sendToWebhook() {
+      const url = document.getElementById('webhookUrl').value.trim();
+      const message = document.getElementById('message').value.trim();
+      const sendBtn = document.getElementById('sendBtn');
+      const responseArea = document.getElementById('responseArea');
+      const statusBadge = document.getElementById('statusBadge');
+      const jsonResponse = document.getElementById('jsonResponse');
+
+      if (!url || !message) {
+        alert('Por favor, ingresa la URL del webhook y el mensaje.');
+        return;
+      }
+
+      sendBtn.disabled = true;
+      sendBtn.innerText = 'ENVIANDO...';
+
+      try {
+        const response = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ message: message })
+        });
+
+        const status = response.ok;
+        const text = await response.text();
+        let data;
+        try {
+          data = JSON.parse(text);
+        } catch (e) {
+          data = { 
+            message: "La respuesta no es un JSON válido.", 
+            raw_response: text || "(Respuesta vacía)" 
+          };
+        }
+
+        responseArea.style.display = 'block';
+        if (status) {
+          statusBadge.className = 'response-status success';
+          statusBadge.innerText = `OK - Status ${response.status}`;
+        } else {
+          statusBadge.className = 'response-status error';
+          statusBadge.innerText = `ERROR - Status ${response.status}`;
+        }
+        jsonResponse.innerText = JSON.stringify(data, null, 2);
+      } catch (error) {
+        responseArea.style.display = 'block';
+        statusBadge.className = 'response-status error';
+        statusBadge.innerText = 'ERROR DE RED / CORS';
+        jsonResponse.innerText = JSON.stringify({ error: error.message }, null, 2);
+      } finally {
+        sendBtn.disabled = false;
+        sendBtn.innerText = 'ENVIAR AL WEBHOOK';
+      }
+    }
+  </script>
+</body>
+
+</html>

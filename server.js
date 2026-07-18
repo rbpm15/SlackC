@@ -22,6 +22,9 @@ const io = new Server(server, {
 });
 app.set('io', io);
 
+app.set('view engine', 'ejs');
+app.set('views', path.join(__dirname, 'views'));
+
 // ─── Middleware ───────────────────────────────────────────────
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
@@ -32,7 +35,7 @@ app.use('/api', apiRoutes);
 
 // ─── Ruta raíz → entrega el frontend ─────────────────────────
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.render('index');
 });
 
 // ─── Socket.io: delegar lógica al handler ────────────────────

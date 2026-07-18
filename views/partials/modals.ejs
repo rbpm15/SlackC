@@ -1,0 +1,151 @@
+<!-- Modal: pedir nombre de usuario -->
+<div id="nameModal" class="name-modal-overlay" style="display:none">
+  <div class="clean-modal-box">
+    <div class="name-modal-icon">💬</div>
+    <h2 class="clean-modal-title">Bienvenido a <strong>SlacIA</strong></h2>
+    <p class="clean-modal-desc">¿Cómo quieres que te vean los demás en el chat?</p>
+    <div class="clean-input-group" style="text-align: center;">
+      <input type="text" id="nameInput" placeholder="Tu nombre o apodo…" maxlength="30" autocomplete="off" class="clean-modal-input-line" style="text-align: center;" />
+    </div>
+    <div style="margin-top: 24px;">
+      <button id="nameSubmitBtn" class="clean-modal-btn-submit" style="width: 100%;">ENTRAR AL CANAL →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+   OVERLAY BÚSQUEDA
+═══════════════════════════════════════════════════════════ -->
+<div class="search-overlay" id="searchOverlay">
+  <div class="search-modal anim-fade-up">
+    <div class="search-header">
+      <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16">
+        <path fill-rule="evenodd"
+          d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" />
+      </svg>
+      <input type="text" id="searchInput" placeholder="Buscar mensajes o canales..." autocomplete="off">
+      <button class="close-btn" id="searchClose">×</button>
+    </div>
+    <div class="search-results" id="searchResults">
+      <!-- Resultados dinámicos -->
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+   MODAL NUEVO CANAL
+═══════════════════════════════════════════════════════════ -->
+<div class="name-modal-overlay" id="newChannelModal" style="display: none;">
+  <div class="clean-modal-box anim-fade-up">
+    <h2 class="clean-modal-title">Crear un canal</h2>
+    <p class="clean-modal-desc">Los canales son donde tu equipo se comunica. Es mejor organizarlos por tema (ej. #marketing).</p>
+    
+    <div class="clean-input-group">
+      <label for="newChannelInput">Nombre</label>
+      <div style="display:flex; align-items:center; border-bottom: 1px solid var(--border-color);">
+        <span style="padding-right:8px; color:var(--text-light)">#</span>
+        <input type="text" id="newChannelInput" placeholder="ej. plan-lanzamiento" maxlength="30" autocomplete="off" class="clean-modal-input-line" style="border-bottom:none !important;" />
+      </div>
+    </div>
+    
+    <div class="clean-input-group">
+      <label for="newChannelDesc">Descripción <span style="font-weight:normal; color:var(--text-light)">(opcional)</span></label>
+      <input type="text" id="newChannelDesc" placeholder="¿De qué trata este canal?" maxlength="100" autocomplete="off" class="clean-modal-input-line" />
+    </div>
+    
+    <div class="clean-modal-actions">
+      <button id="newChannelClose" class="clean-modal-btn-cancel">Cancelar</button>
+      <button id="newChannelSubmit" class="clean-modal-btn-submit">CREAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+   MODAL NUEVO EVENTO
+═══════════════════════════════════════════════════════════ -->
+<div class="name-modal-overlay" id="newEventModal" style="display: none; z-index: 2000;">
+  <div class="clean-modal-box anim-fade-up">
+    <h2 class="clean-modal-title">Registrar Evento</h2>
+    <p class="clean-modal-desc">Agrega un evento a la agenda en la fecha<br>seleccionada.</p>
+    
+    <div class="clean-input-group">
+      <label for="newEventTitle">Título</label>
+      <input type="text" id="newEventTitle" placeholder="ej. Reunión de equipo" autocomplete="off" class="clean-modal-input-line" />
+    </div>
+    
+    <div class="clean-input-row">
+      <div class="clean-input-group" style="flex: 1; margin-top: 0;">
+        <label for="newEventDate">Fecha</label>
+        <input type="date" id="newEventDate" class="clean-modal-input-line" />
+      </div>
+      <div class="clean-input-group" style="flex: 1; margin-top: 0;">
+        <label for="newEventTime">Horario</label>
+        <input type="time" id="newEventTime" class="clean-modal-input-line" />
+      </div>
+    </div>
+    
+    <div class="clean-input-group">
+      <label for="newEventDesc">Detalle (Opcional)</label>
+      <input type="text" id="newEventDesc" placeholder="Descripción breve" autocomplete="off" class="clean-modal-input-line" />
+    </div>
+    
+    <div class="clean-modal-actions">
+      <button id="newEventClose" onclick="AgendaModule.cerrarModalRegistro()" class="clean-modal-btn-cancel">Cancelar</button>
+      <button id="newEventSubmit" onclick="AgendaModule.guardarEventoManual()" class="clean-modal-btn-submit">GUARDAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+   MODAL ADMIN LOGIN
+═══════════════════════════════════════════════════════════ -->
+<div class="name-modal-overlay" id="adminLoginModal" style="display: none;">
+  <div class="clean-modal-box anim-fade-up">
+    <h2 class="clean-modal-title">Login</h2>
+    <p class="clean-modal-desc">Inicia sesión</p>
+
+    <div class="clean-input-group">
+      <label for="adminUser">Usuario</label>
+      <input type="text" id="adminUser" placeholder="Usuario" autocomplete="off" class="clean-modal-input-line" />
+    </div>
+    <div class="clean-input-group">
+      <label for="adminPass">Contraseña</label>
+      <input type="password" id="adminPass" placeholder="Contraseña" autocomplete="off" class="clean-modal-input-line" />
+    </div>
+
+    <div class="clean-modal-actions">
+      <button id="adminLoginClose" class="clean-modal-btn-cancel">Cancelar</button>
+      <button id="adminLoginSubmit" class="clean-modal-btn-submit">ENTRAR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+   MODAL ADMIN DASHBOARD
+═══════════════════════════════════════════════════════════ -->
+<div class="name-modal-overlay" id="adminDashboardModal" style="display: none;">
+  <div class="name-modal-box anim-fade-up" style="max-width: 800px; width: 90%;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <h2 class="name-modal-title">Configuración - Panel de Usuarios</h2>
+      <button class="close-btn" id="adminDashboardClose"
+        style="background: none; border: none; font-size: 24px; color: var(--text-light); cursor: pointer;">&times;</button>
+    </div>
+
+    <div style="margin-top: 20px; overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; text-align: left; color: var(--slack-text);">
+        <thead>
+          <tr style="border-bottom: 2px solid rgba(0,0,0,0.1);">
+            <th style="padding: 10px;">Usuario</th>
+            <th style="padding: 10px;">Dispositivo (User-Agent)</th>
+            <th style="padding: 10px;">Última Conexión</th>
+            <th style="padding: 10px;">Estado</th>
+            <th style="padding: 10px;">Acción</th>
+          </tr>
+        </thead>
+        <tbody id="adminUsersTableBody">
+          <!-- Cargado por JS -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

@@ -9,7 +9,7 @@
 /* ════════════════════════════════════════════════════════════════
    N8N
 ════════════════════════════════════════════════════════════════ */
-const N8N_WEBHOOK_URL = 'https://tu-instancia.n8n.io/webhook/slackc-evento';
+const N8N_WEBHOOK_URL = 'https://tu-instancia.n8n.io/webhook/slacia-evento';
 
 /* ════════════════════════════════════════════════════════════════
    REFS DOM

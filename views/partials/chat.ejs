@@ -1,0 +1,136 @@
+<!-- ── CHAT AREA ─────────────────────────────────────────── -->
+<main class="chat-area" id="chatArea">
+
+  <!-- Chat header -->
+  <header class="chat-header">
+    <div class="chat-header-left">
+      <button class="header-action-btn sidebar-toggle-btn" id="btnToggleSidebar" title="Mostrar barra lateral"
+        style="margin-right: 4px;">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+          <path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z" />
+        </svg>
+      </button>
+      <span class="chat-channel-icon" id="chatChannelIcon">#</span>
+      <h1 class="chat-channel-name" id="chatChannelName">general</h1>
+      <span class="chat-topic" id="chatTopic">Canal de comunicación general del equipo</span>
+    </div>
+    <div class="chat-header-right">
+      <span class="member-count" id="memberCount"></span>
+      <span id="connectionStatus" class="connection-status">
+        <span class="conn-dot online"></span>En línea
+      </span>
+
+      <button class="header-action-btn agenda-toggle-btn" title="Ver Agenda / Calendario" id="btnToggleRightPanel">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="20" height="20">
+          <path
+            d="M19 4h-1V2h-2v2H8V2H6v2H5c-1.11 0-1.99.9-1.99 2L3 20c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 16H5V10h14v10zm0-12H5V6h14v2z" />
+        </svg>
+      </button>
+      <button class="header-action-btn" title="Chatbot" id="btnToggleChatbot">
+        <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
+          <path
+            d="M12 2a2 2 0 012 2c0 .74-.4 1.39-1 1.73V7h1a7 7 0 017 7h1a1 1 0 011 1v3a1 1 0 01-1 1h-1v1a2 2 0 01-2 2H4a2 2 0 01-2-2v-1H1a1 1 0 01-1-1v-3a1 1 0 011-1h1a7 7 0 017-7h1V5.73c-.6-.34-1-.99-1-1.73a2 2 0 012-2zM9 11a2 2 0 100 4 2 2 0 000-4zm6 0a2 2 0 100 4 2 2 0 000-4z" />
+        </svg>
+      </button>
+      <!-- SWITCH n8n -->
+      <div class="n8n-toggle-wrap" title="Alternar entre n8n y IA local">
+        <label class="n8n-switch">
+          <input type="checkbox" id="n8nSwitch" />
+          <span class="n8n-slider"></span>
+        </label>
+        <span class="n8n-label" id="n8nLabel">n8n</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Messages feed -->
+  <div class="messages-feed" id="messagesFeed">
+
+    <!-- Day divider -->
+    <div class="day-divider">
+      <span class="day-divider-line"></span>
+      <span class="day-divider-text" id="dayDividerText">Hoy</span>
+      <span class="day-divider-line"></span>
+    </div>
+
+    <!-- Welcome message -->
+    <div class="welcome-banner" id="welcomeBanner">
+      <div class="welcome-icon" id="welcomeIcon">#</div>
+      <h2>Bienvenido a <strong id="welcomeTitle">#general</strong></h2>
+      <p id="welcomeDesc">Este es el punto de inicio del canal <strong>#general</strong>. Aquí está el historial de
+        mensajes del canal.</p>
+    </div>
+
+    <!-- Messages will be injected here by chat.js -->
+
+  </div>
+
+  <!-- Typing indicator -->
+  <div class="typing-area" id="typingArea" style="display:none">
+    <span class="typing-dots">
+      <span></span><span></span><span></span>
+    </span>
+    <span class="typing-text" id="typingText">Alguien está escribiendo…</span>
+  </div>
+
+  <!-- Input area -->
+  <div class="input-area">
+    <div class="input-toolbar">
+      <button class="toolbar-btn" title="Negrita" id="btnFormatBold"><strong>B</strong></button>
+      <button class="toolbar-btn" title="Cursiva" id="btnFormatItalic"><em>i</em></button>
+      <button class="toolbar-btn" title="Código" id="btnFormatCode">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+          <path fill-rule="evenodd"
+            d="M12.316 3.051a1 1 0 01.633 1.265l-4 12a1 1 0 11-1.898-.632l4-12a1 1 0 011.265-.633zM5.707 6.293a1 1 0 010 1.414L3.414 10l2.293 2.293a1 1 0 11-1.414 1.414l-3-3a1 1 0 010-1.414l3-3a1 1 0 011.414 0zm8.586 0a1 1 0 011.414 0l3 3a1 1 0 010 1.414l-3 3a1 1 0 11-1.414-1.414L16.586 10l-2.293-2.293a1 1 0 010-1.414z" />
+        </svg>
+      </button>
+      <span class="toolbar-divider"></span>
+      <button class="toolbar-btn" title="Adjuntar archivo" id="btnAttach">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
+          <path fill-rule="evenodd"
+            d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" />
+        </svg>
+      </button>
+      <div style="position: relative; display: flex; align-items: center;">
+        <button class="toolbar-btn" title="Emoji" id="btnEmoji" type="button">😊</button>
+        <div id="emojiPicker" class="emoji-picker-popover" style="display: none;">
+          <button type="button" class="emoji-picker-btn" data-emoji="😀">😀</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="😂">😂</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="😍">😍</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="👍">👍</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="👎">👎</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="👏">👏</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="🙌">🙌</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="🎉">🎉</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="🔥">🔥</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="🚀">🚀</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="👀">👀</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="🤔">🤔</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="😢">😢</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="😡">😡</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="😱">😱</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="💻">💻</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="💡">💡</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="✔️">✔️</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="❌">❌</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="💯">💯</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="🤝">🤝</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="❤️">❤️</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="✨">✨</button>
+          <button type="button" class="emoji-picker-btn" data-emoji="😎">😎</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-box-wrap">
+      <textarea id="chatInput" class="chat-input" placeholder="Mensaje en #general" rows="1"></textarea>
+      <button class="send-btn" id="sendBtn" disabled>
+        <svg viewBox="0 0 20 20" fill="currentColor" width="18" height="18">
+          <path
+            d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" />
+        </svg>
+      </button>
+    </div>
+  </div>
+
+</main>

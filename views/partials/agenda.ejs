@@ -1,0 +1,30 @@
+<!-- ── AGENDA PANEL ──────────────────────────────────────── -->
+<aside class="agenda-panel" id="agendaPanel">
+
+  <div class="agenda-header">
+    <div>
+      <h2 class="agenda-title">📅 Agenda</h2>
+      <p class="agenda-date" id="agendaDate"></p>
+    </div>
+    <div style="display: flex; align-items: center; gap: 8px;">
+      <span class="agenda-count" id="agendaCount">0 eventos</span>
+      <button class="agenda-close-btn" id="btnCloseAgenda"
+        style="display: none; background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-light); line-height: 1;">×</button>
+    </div>
+  </div>
+
+  <!-- Integration status bar -->
+  <div class="integration-bar" id="integrationBar">
+    <span class="integration-dot local" id="integrationDot"></span>
+    <span class="integration-status-text" id="integrationStatusText">IA Local activa</span>
+  </div>
+
+  <!-- Events list -->
+  <div class="agenda-body" id="agendaBody">
+    <div class="agenda-empty" id="agendaEmpty">
+      <div class="agenda-empty-icon">🗓️</div>
+      <p>Sin eventos registrados</p>
+    </div>
+  </div>
+
+</aside>

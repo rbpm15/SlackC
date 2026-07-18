@@ -7,12 +7,12 @@
 /* ════════════════════════════════════════════════════════════════
    TEMA VISUAL (Dark/Light)
 ════════════════════════════════════════════════════════════════ */
-let currentTheme = localStorage.getItem('slackc_theme') || 'light';
+let currentTheme = localStorage.getItem('slacia_theme') || 'light';
 
 function applyTheme(theme) {
   document.body.classList.remove('theme-light', 'theme-dark');
   document.body.classList.add(`theme-${theme}`);
-  localStorage.setItem('slackc_theme', theme);
+  localStorage.setItem('slacia_theme', theme);
   const themeDarkSwitch = document.getElementById('themeDarkSwitch');
   if (themeDarkSwitch) {
     themeDarkSwitch.checked = (theme === 'dark');
@@ -24,7 +24,7 @@ applyTheme(currentTheme);
 /* ════════════════════════════════════════════════════════════════
    IDENTIDAD y PERFIL
 ════════════════════════════════════════════════════════════════ */
-let myName     = localStorage.getItem('slackc_name') || '';
+let myName     = localStorage.getItem('slacia_name') || '';
 let mySocketId = null;
 
 function resolverNombre() {
@@ -118,7 +118,7 @@ document.getElementById('nameSubmitBtn').addEventListener('click', async () => {
     }
     
     myName = val.slice(0, 30);
-    localStorage.setItem('slackc_name', myName);
+    localStorage.setItem('slacia_name', myName);
     ocultarNameModal();
     updateProfileUI();
     cargarDMs();

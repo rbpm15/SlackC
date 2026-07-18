@@ -1,0 +1,62 @@
+<!-- ── CHATBOT PANEL ─────────────────────────────────────── -->
+<aside class="chatbot-panel" id="chatbotPanel" style="display:none">
+  <div class="chatbot-header">
+    <button class="chatbot-close-btn" id="btnCloseChatbot">×</button>
+  </div>
+  <div class="chatbot-body" style="display:flex; flex-direction:column; overflow:hidden; flex:1;">
+    <div id="chatbotIntro">
+      <div class="chatbot-icon-wrap">
+        <svg class="chatbot-logo-img" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <rect width="100" height="100" rx="20" fill="url(#botGrad)" />
+          <defs>
+            <linearGradient id="botGrad" x1="0" y1="0" x2="100" y2="100">
+              <stop offset="0%" stop-color="#36C5F0" />
+              <stop offset="33%" stop-color="#2EB67D" />
+              <stop offset="66%" stop-color="#E01E5A" />
+              <stop offset="100%" stop-color="#ECB22E" />
+            </linearGradient>
+          </defs>
+          <circle cx="35" cy="40" r="8" fill="#FFF" />
+          <circle cx="65" cy="40" r="8" fill="#FFF" />
+          <path d="M 35 60 Q 50 75 65 60" fill="none" stroke="#FFF" stroke-width="6" stroke-linecap="round" />
+        </svg>
+      </div>
+      <h2 class="chatbot-title">¡Hola! Soy SLC BOT.</h2>
+      <p class="chatbot-desc">Puedo ayudarte a trabajar de la mejor manera en SlacIA. Entre otras cosas, puedo hacer
+        lo siguiente:</p>
+
+      <div class="chatbot-actions">
+        <button class="chatbot-action-btn">
+          <span class="chatbot-btn-icon">🔍</span> Buscar y encontrar cosas
+        </button>
+        <button class="chatbot-action-btn">
+          <span class="chatbot-btn-icon">🧠</span> Crear y administrar contenido
+        </button>
+        <button class="chatbot-action-btn">
+          <span class="chatbot-btn-icon">📅</span> Administrar tu tiempo y tus datos
+        </button>
+      </div>
+    </div> <!-- /chatbotIntro -->
+
+    <!-- Chat history para el bot (nuevo) -->
+    <div id="chatbotHistory"
+      style="flex:1; overflow-y:auto; margin-top:15px; border-top:1px solid var(--border-color); padding-top:10px; display:flex; flex-direction:column; gap:10px; font-size:13px; color:var(--text-main);">
+      <!-- Mensajes del bot aquí -->
+    </div>
+
+    <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px; flex-shrink:0;">
+      <div style="position:relative; width:100%;">
+        <input type="text" id="chatbotQuickInput" placeholder="Envía un mensaje a SLC BOT..."
+          style="width:100%; padding:10px 40px 10px 12px; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-primary); color:var(--text-main); font-size:13px; outline:none;"
+          autocomplete="off" />
+        <button id="btnDMtoBot"
+          style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--slack-primary); display:flex; align-items:center; justify-content:center; padding:4px;">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
+          </svg>
+        </button>
+      </div>
+    </div>
+    <a href="#" class="chatbot-link" id="btnNotifBot">Ir a notificaciones de SLC BOT</a>
+  </div>
+</aside>

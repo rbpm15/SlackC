@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SlacIA</title>
+  <link rel="icon"
+    href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>💬</text></svg>" />
+  <link href="https://fonts.googleapis.com/css2?family=Lato:wght@400;700;900&family=Inter:wght@400;500;600&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css" />
+  <link rel="stylesheet" href="/css/base.css" />
+  <link rel="stylesheet" href="/css/sidebar.css" />
+  <link rel="stylesheet" href="/css/chat.css" />
+  <link rel="stylesheet" href="/css/input.css" />
+  <link rel="stylesheet" href="/css/agenda.css" />
+  <link rel="stylesheet" href="/css/calendar.css" />
+  <link rel="stylesheet" href="/css/modals.css" />
+</head>
+
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════
+     APP SHELL
+  ═══════════════════════════════════════════════════════════ -->
+  <div class="app-shell">
+
+    <%- include('partials/sidebar') %>
+
+    <%- include('partials/chat') %>
+
+    <%- include('partials/agenda') %>
+
+    <%- include('partials/chatbot') %>
+
+  </div>
+
+  <%- include('partials/modals') %>
+
+  <!-- Scripts — cargados al final para no bloquear render -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/js/agenda.js"></script>
+  <script src="/js/chat.js"></script>
+  <script src="/js/app.js"></script>
+  <script src="/js/chatbot.js"></script>
+  <script src="/js/admin.js"></script>
+
+</body>
+
+</html>

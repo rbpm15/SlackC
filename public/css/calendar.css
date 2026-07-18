@@ -47,8 +47,26 @@
   color: var(--text-main);
   padding: 4px 2px;
   border-radius: 6px;
-  cursor: default;
+  cursor: pointer;
   transition: background 0.1s;
+  position: relative;
+}
+.cal-cell:not(.empty):hover {
+  background: var(--bg-hover);
+}
+.cal-cell.selected-day {
+  background: rgba(57, 73, 171, 0.2);
+  border: 1px solid #3949AB;
+}
+.event-indicator {
+  position: absolute;
+  bottom: 0px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 4px;
+  background-color: #E01E5A;
+  border-radius: 50%;
 }
 .cal-cell.empty { color: transparent; }
 .cal-cell.today {

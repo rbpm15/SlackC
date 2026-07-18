@@ -110,6 +110,19 @@ router.get('/dm/list', async (req, res) => {
   }
 });
 
+// GET /api/users — listar todos los usuarios conocidos (autores de mensajes)
+router.get('/users', async (req, res) => {
+  try {
+    const usuarios = await Message.find().distinct('autor');
+    // Filtrar falsy values o bots si es necesario
+    const filter = usuarios.filter(u => u && u !== 'SLC BOT');
+    res.json({ ok: true, data: filter });
+  } catch (err) {
+    console.error('[API] GET /users:', err.message);
+    res.status(500).json({ ok: false, error: 'Error listando usuarios.' });
+  }
+});
+
 // ══════════════════════════════════════════════════════════════
 //  MENSAJES
 // ══════════════════════════════════════════════════════════════
@@ -188,6 +201,22 @@ router.delete('/events/:id', async (req, res) => {
   } catch (err) {
     console.error('[API] DELETE /events/:id:', err.message);
     res.status(500).json({ ok: false, error: 'Error eliminando evento.' });
+  }
+});
+
+// POST /api/bot/chat (Chatbot Panel direct interaction)
+router.post('/bot/chat', async (req, res) => {
+  try {
+    const { texto } = req.body;
+    if (!texto) return res.status(400).json({ ok: false, error: 'Texto requerido.' });
+    
+    const { chatConBot } = require('../services/agendaAI');
+    const respuesta = await chatConBot(texto);
+    
+    res.json({ ok: true, respuesta });
+  } catch (err) {
+    console.error('[API] POST /bot/chat:', err.message);
+    res.status(500).json({ ok: false, error: 'Error interno del bot.' });
   }
 });
 

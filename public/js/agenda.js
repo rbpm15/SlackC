@@ -52,7 +52,7 @@ function crearMiniCalendario() {
   }
   for (let d = 1; d <= totalDias; d++) {
     const esHoy = d === diaHoy;
-    celdas += `<span class="cal-cell${esHoy ? ' today' : ''}">${d}</span>`;
+    celdas += `<span class="cal-cell${esHoy ? ' today' : ''}" id="cal-day-${d}" onclick="window.AgendaModule.filtrarPorDia(${d})">${d}</span>`;
   }
 
   return `
@@ -82,18 +82,18 @@ function actualizarContador() {
   const total = document.querySelectorAll('.event-card').length;
   agendaCountEl.textContent = `${total} evento${total !== 1 ? 's' : ''}`;
 
-  // Si no hay eventos, volver a mostrar el calendario
+  // Si no hay eventos, asegurarse de que el calendario exista y mostrar el texto vacío
   if (total === 0) {
-    // Solo si no hay ya el mini calendar
     if (!agendaBodyEl.querySelector('.mini-calendar')) {
       agendaBodyEl.innerHTML = crearMiniCalendario();
+    } else {
+      const txt = agendaBodyEl.querySelector('.mini-cal-empty-text');
+      if (txt) txt.style.display = 'block';
     }
   } else {
-    // Si hay eventos, quitar el calendario vacío si todavía existe
-    const cal = agendaBodyEl.querySelector('.mini-calendar');
-    if (cal) cal.closest('.mini-calendar')?.remove();
+    // Ocultar solo el texto de "Sin eventos", no el calendario
     const txt = agendaBodyEl.querySelector('.mini-cal-empty-text');
-    if (txt) txt.remove();
+    if (txt) txt.style.display = 'none';
   }
 }
 
@@ -103,10 +103,6 @@ function actualizarContador() {
 function renderizarEvento(evento, animado = true) {
   const evId = `ev-${evento.id}`;
   if (document.getElementById(evId)) return;
-
-  // Quitar calendario vacío si aún está
-  const calContainer = agendaBodyEl.querySelector('.mini-calendar');
-  if (calContainer) agendaBodyEl.innerHTML = '';
 
   const horaCreado = new Date(evento.createdAt).toLocaleTimeString('es-MX', {
     hour: '2-digit', minute: '2-digit',
@@ -123,6 +119,7 @@ function renderizarEvento(evento, animado = true) {
   const card = document.createElement('div');
   card.id        = evId;
   card.className = 'event-card' + (animado ? ' anim-slide-right' : '');
+  card.dataset.diaNum = evento.diaNum || '';
 
   card.innerHTML = `
     <div class="event-card-header">
@@ -142,6 +139,14 @@ function renderizarEvento(evento, animado = true) {
 
   agendaBodyEl.appendChild(card);
   actualizarContador();
+
+  // Marcar punto en el calendario si tenemos día numérico
+  if (evento.diaNum) {
+    const cell = document.getElementById(`cal-day-${evento.diaNum}`);
+    if (cell && !cell.querySelector('.event-indicator')) {
+      cell.innerHTML += `<div class="event-indicator"></div>`;
+    }
+  }
 
   if (animado) {
     requestAnimationFrame(() => {
@@ -231,13 +236,55 @@ const AgendaModule = {
   eliminarEvento(id) {
     const card = document.getElementById(`ev-${id}`);
     if (!card) return;
+    
+    // Obtener día para saber si tenemos que quitar el puntito
+    const diaNum = card.dataset.diaNum;
+    
     card.style.transition = 'opacity 0.2s, transform 0.2s';
     card.style.opacity    = '0';
     card.style.transform  = 'translateX(20px)';
     setTimeout(() => {
       card.remove();
       actualizarContador();
+      
+      // Quitar puntito del calendario si ya no hay eventos ese día
+      if (diaNum) {
+        const otros = document.querySelector(`.event-card[data-dia-num="${diaNum}"]`);
+        if (!otros) {
+          const cell = document.getElementById(`cal-day-${diaNum}`);
+          const ind = cell?.querySelector('.event-indicator');
+          if (ind) ind.remove();
+        }
+      }
     }, 220);
+  },
+
+  /** Filtrar eventos por día al hacer clic en el calendario */
+  filtrarPorDia(diaNum) {
+    const cell = document.getElementById(`cal-day-${diaNum}`);
+    if (!cell) return;
+    
+    const isSelected = cell.classList.contains('selected-day');
+    
+    // Quitar selección a todos
+    document.querySelectorAll('.cal-cell').forEach(c => c.classList.remove('selected-day'));
+    
+    const cards = document.querySelectorAll('.event-card');
+    
+    if (isSelected) {
+      // Si ya estaba seleccionado, des-seleccionar y mostrar todos
+      cards.forEach(c => c.style.display = 'block');
+    } else {
+      // Seleccionar este y filtrar
+      cell.classList.add('selected-day');
+      cards.forEach(c => {
+        if (c.dataset.diaNum == diaNum) {
+          c.style.display = 'block';
+        } else {
+          c.style.display = 'none';
+        }
+      });
+    }
   },
 };
 

@@ -18,6 +18,10 @@ const EventSchema = new mongoose.Schema(
       required: [true, 'El día del evento es obligatorio.'],
       trim: true,
     },
+    diaNum: {
+      type: Number,
+      required: false,
+    },
     hora: {
       type: String,
       required: [true, 'La hora del evento es obligatoria.'],

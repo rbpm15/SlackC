@@ -24,7 +24,7 @@ applyTheme(currentTheme);
 /* ════════════════════════════════════════════════════════════════
    IDENTIDAD y PERFIL
 ════════════════════════════════════════════════════════════════ */
-let myName     = sessionStorage.getItem('slackc_name') || '';
+let myName     = localStorage.getItem('slackc_name') || '';
 let mySocketId = null;
 
 function resolverNombre() {
@@ -103,7 +103,7 @@ document.getElementById('nameSubmitBtn').addEventListener('click', () => {
   const val = document.getElementById('nameInput').value.trim();
   if (!val) return;
   myName = val.slice(0, 30);
-  sessionStorage.setItem('slackc_name', myName);
+  localStorage.setItem('slackc_name', myName);
   ocultarNameModal();
   updateProfileUI();
   // Cargar DMs del usuario después de tener nombre
@@ -282,6 +282,11 @@ async function cargarDMs() {
     const r = await fetch(`/api/dm/list?user=${encodeURIComponent(myName)}`);
     const d = await r.json();
     if (d.ok) ChatModule.renderizarDMs(d.data, myName);
+    
+    // Cargar directorio de usuarios (opcional, para DM rápido)
+    const r2 = await fetch('/api/users');
+    const d2 = await r2.json();
+    if (d2.ok) ChatModule.renderizarUsuarios(d2.data, myName);
   } catch { /* silencioso */ }
 }
 

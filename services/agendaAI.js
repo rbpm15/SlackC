@@ -24,24 +24,26 @@ function detectarCitaRegex(texto) {
 }
 
 // ── Detección con IA via OpenRouter ──────────────────────────
-const SYSTEM_PROMPT = `Eres un extractor de eventos de calendario.
-Analiza el siguiente mensaje de chat y determina si contiene una cita, reunión, encuentro o evento agendado.
-Responde SOLO con un JSON válido en este formato exacto:
-{"detectado": true, "dia": "Mañana", "hora": "10:00 hrs", "titulo": "texto resumido del evento"}
-Si NO hay ninguna cita o evento, responde SOLO:
-{"detectado": false}
-No escribas nada más, solo el JSON.`;
 
 /**
- * Analiza un mensaje con IA y retorna { detectado, dia, hora, titulo } o null.
+ * Analiza un mensaje con IA y retorna { detectado, dia, hora, titulo, diaNum } o null.
  * @param {string} texto
- * @returns {Promise<{dia:string, hora:string, titulo:string}|null>}
+ * @returns {Promise<{dia:string, hora:string, titulo:string, diaNum:number}|null>}
  */
 async function detectarCitaIA(texto) {
   if (!OPENROUTER_API_KEY) {
     console.warn('[AgendaAI] Sin OPENROUTER_API_KEY — usando fallback Regex.');
     return detectarCitaRegex(texto);
   }
+
+  const hoy = new Date();
+  const SYSTEM_PROMPT = `Eres un extractor de eventos de calendario. Hoy es ${hoy.toLocaleDateString('es-MX', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}.
+Analiza el siguiente mensaje de chat y determina si contiene una cita, reunión, encuentro o evento agendado.
+Responde SOLO con un JSON válido en este formato exacto:
+{"detectado": true, "dia": "Mañana", "hora": "10:00 hrs", "titulo": "texto resumido del evento", "diaNum": 18}
+donde "diaNum" es el número de día del mes (1-31) correspondiente a la fecha del evento. Si NO hay ninguna cita o evento, responde SOLO:
+{"detectado": false}
+No escribas nada más, solo el JSON.`;
 
   try {
     const res = await fetch(OPENROUTER_URL, {

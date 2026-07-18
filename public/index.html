@@ -103,33 +103,19 @@
         </svg>
         Mensajes directos
         <button class="add-section-btn" title="Nuevo DM">+</button>
-      </div>
       <ul class="dm-list" id="dmList">
-        <li class="dm-item" data-channel-id="slcbot" data-channel-name="SLC BOT">
-          <span class="dm-avatar" style="background: linear-gradient(135deg, #36C5F0, #2EB67D)">🤖</span>
-          <span class="dm-name">SLC BOT</span>
-          <span class="presence online"></span>
-        </li>
-        <li class="dm-item" data-dm="carlos">
-          <span class="dm-avatar" style="background:#E01E5A">C</span>
-          <span class="dm-name">Carlos Gómez</span>
-          <span class="presence online"></span>
-        </li>
-        <li class="dm-item" data-dm="ana">
-          <span class="dm-avatar" style="background:#2EB67D">A</span>
-          <span class="dm-name">Ana Martínez</span>
-          <span class="presence online"></span>
-        </li>
-        <li class="dm-item" data-dm="luis">
-          <span class="dm-avatar" style="background:#ECB22E">L</span>
-          <span class="dm-name">Luis Torres</span>
-          <span class="presence away"></span>
-        </li>
-        <li class="dm-item" data-dm="yo">
-          <span class="dm-avatar" style="background:#36C5F0">Tú</span>
-          <span class="dm-name">Tú (Notas)</span>
-          <span class="presence online"></span>
-        </li>
+        <!-- DMs cargados dinámicamente -->
+      </ul>
+
+      <!-- NUEVO: Sección de usuarios en línea o para iniciar chat -->
+      <div class="sidebar-section-header" style="margin-top: 15px;">
+        <svg class="section-arrow open" viewBox="0 0 20 20" fill="currentColor" width="12" height="12">
+          <path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z"/>
+        </svg>
+        Directorio (Clic para mensajear)
+      </div>
+      <ul class="dm-list" id="usersList">
+        <!-- Usuarios cargados dinámicamente -->
       </ul>
     </div>
 
@@ -328,9 +314,14 @@
         </button>
       </div>
 
+      <!-- Chat history para el bot (nuevo) -->
+      <div id="chatbotHistory" style="flex:1; overflow-y:auto; margin-top:15px; border-top:1px solid var(--border-color); padding-top:10px; display:flex; flex-direction:column; gap:10px; font-size:13px; color:var(--text-main);">
+        <!-- Mensajes del bot aquí -->
+      </div>
+
       <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px;">
         <input type="text" id="chatbotQuickInput" placeholder="Envía un mensaje a SLC BOT..." style="width:100%; padding:10px 12px; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-primary); color:var(--text-main); font-size:13px; outline:none;" autocomplete="off" />
-        <button class="chatbot-upgrade-btn" id="btnDMtoBot" style="margin-top:0;">Mandar mensaje</button>
+        <button class="chatbot-upgrade-btn" id="btnDMtoBot" style="margin-top:0;">Ascender de plan ahora</button>
       </div>
       <a href="#" class="chatbot-link" id="btnNotifBot">Ir a notificaciones de SLC BOT</a>
     </div>

@@ -198,6 +198,31 @@ function renderizarDMs(dms, myName) {
 }
 
 /* ════════════════════════════════════════════════════════════════
+   RENDERIZADO DINÁMICO DE USUARIOS
+════════════════════════════════════════════════════════════════ */
+function renderizarUsuarios(usuarios, myName) {
+  const listEl = document.getElementById('usersList');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  usuarios.forEach(u => {
+    if (u === myName) return; // No mostrarte a ti mismo en el directorio
+    const color = colorDeAutor(u);
+    const li = document.createElement('li');
+    li.className = 'dm-item';
+    li.style.cursor = 'pointer';
+    // Cuando hacen clic, invocan iniciarDM en app.js
+    li.onclick = () => { if (typeof iniciarDM === 'function') iniciarDM(u); };
+    li.innerHTML = `
+      <span class="dm-avatar" style="background:${color}">${iniciales(u)}</span>
+      <span class="dm-name">${escapeHtml(u)}</span>
+      <span class="presence online"></span>
+    `;
+    listEl.appendChild(li);
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
    SELECCIONAR CANAL / DM
 ════════════════════════════════════════════════════════════════ */
 async function seleccionarCanal(id, nombre, descripcion = '', tipo = 'channel') {
@@ -430,6 +455,7 @@ window.ChatModule = {
   ocultarTyping,
   renderizarCanales,
   renderizarDMs,
+  renderizarUsuarios,
   incrementarNoLeido,
 
   getCurrentChannelId:   () => currentChannelId,

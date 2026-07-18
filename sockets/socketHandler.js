@@ -105,6 +105,7 @@ function socketHandler(io) {
           const eventoDoc = await Event.create({
             titulo:        cita.titulo || texto.slice(0, 100),
             dia:           cita.dia,
+            diaNum:        cita.diaNum,
             hora:          cita.hora,
             autor,
             channelId,
@@ -119,6 +120,7 @@ function socketHandler(io) {
             _id:       eventoDoc._id.toString(),
             titulo:    eventoDoc.titulo,
             dia:       eventoDoc.dia,
+            diaNum:    eventoDoc.diaNum,
             hora:      eventoDoc.hora,
             autor,
             channelId,

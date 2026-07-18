@@ -99,11 +99,23 @@ if (btnChangeUser) {
   });
 }
 
-document.getElementById('nameSubmitBtn').addEventListener('click', () => {
+document.getElementById('nameSubmitBtn').addEventListener('click', async () => {
   const val = document.getElementById('nameInput').value.trim();
   if (!val) return;
+  const oldName = myName;
   myName = val.slice(0, 30);
   localStorage.setItem('slackc_name', myName);
+  
+  try {
+    await fetch('/api/users/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: myName, oldUsername: oldName })
+    });
+  } catch (e) {
+    console.error('Error al registrar usuario:', e);
+  }
+
   ocultarNameModal();
   updateProfileUI();
   // Cargar DMs del usuario después de tener nombre
@@ -320,6 +332,14 @@ async function iniciarDM(otroUsuario) {
 ════════════════════════════════════════════════════════════════ */
 async function cargarInicial() {
   try {
+    if (myName) {
+      fetch('/api/users/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: myName })
+      }).catch(e => console.error(e));
+    }
+
     const [rChannels, rEvs] = await Promise.allSettled([
       fetch('/api/channels').then(r => r.json()),
       fetch('/api/events').then(r => r.json()),

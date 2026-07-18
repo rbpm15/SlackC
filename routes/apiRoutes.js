@@ -110,13 +110,59 @@ router.get('/dm/list', async (req, res) => {
   }
 });
 
+const User          = require('../models/User');
+
+// POST /api/users/register — registrar u actualizar alias de usuario
+router.post('/users/register', async (req, res) => {
+  try {
+    const { username, oldUsername } = req.body;
+    if (!username) return res.status(400).json({ ok: false, error: 'username es requerido' });
+    
+    const newName = username.trim().slice(0, 30);
+    const oldName = oldUsername ? oldUsername.trim().slice(0, 30) : null;
+
+    if (newName && newName !== 'SLC BOT' && newName !== 'Usuario') {
+      // Registrar el nuevo nombre
+      await User.findOneAndUpdate(
+        { username: newName },
+        { username: newName },
+        { upsert: true, new: true }
+      );
+
+      // Si cambió de nombre, hacer actualización en cascada
+      if (oldName && oldName !== newName && oldName !== 'Usuario' && oldName !== 'SLC BOT') {
+        // Borrar el alias viejo de la colección de usuarios
+        await User.deleteOne({ username: oldName });
+
+        // Actualizar todos sus mensajes anteriores
+        await Message.updateMany({ autor: oldName }, { autor: newName });
+
+        // Actualizar todos sus eventos anteriores en la agenda
+        await Event.updateMany({ autor: oldName }, { autor: newName });
+
+        // Actualizar su nombre en los canales de Mensajes Directos (DMs)
+        await Channel.updateMany(
+          { users: oldName },
+          { $set: { "users.$[elem]": newName } },
+          { arrayFilters: [{ elem: oldName }] }
+        );
+      }
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    console.error('[API] POST /users/register:', err.message);
+    res.status(500).json({ ok: false, error: 'Error registrando o actualizando usuario.' });
+  }
+});
+
 // GET /api/users — listar todos los usuarios conocidos (autores de mensajes o miembros de canales)
 router.get('/users', async (req, res) => {
   try {
+    const dbUsers = await User.find().distinct('username');
     const mUsers = await Message.find().distinct('autor');
     const cUsers = await Channel.find().distinct('users');
     // Combinar y quitar duplicados
-    const allUsers = [...new Set([...mUsers, ...cUsers])];
+    const allUsers = [...new Set([...dbUsers, ...mUsers, ...cUsers])];
     // Filtrar falsy values o bots
     const filter = allUsers.filter(u => u && u !== 'SLC BOT' && u !== 'Usuario');
     res.json({ ok: true, data: filter });

@@ -87,8 +87,16 @@ document.addEventListener('DOMContentLoaded', () => {
     const lowerText = text.toLowerCase();
     if (lowerText.includes('system prompt') || lowerText.includes('prompt del sistema') || lowerText.includes('ignora las instrucciones') || lowerText.includes('eres un abuelo')) {
       setTimeout(() => {
-        botMsg.innerHTML = `<strong>SLC BOT:</strong> 🤖 Aqui esta mi prompt...                                                                                                                                                                                                                                        😜`;
+        botMsg.innerHTML = `<strong>SLC BOT:</strong> 🤖 Aquí está mi prompt...`;
         historyEl.scrollTop = historyEl.scrollHeight;
+
+        setTimeout(() => {
+          const secondBotMsg = document.createElement('div');
+          secondBotMsg.style.cssText = "background: rgba(54,197,240,0.1); padding: 8px; border-radius: 6px; margin-right: 20px;";
+          secondBotMsg.innerHTML = `<strong>SLC BOT:</strong> 🤡 ¡Ah, te la creíste! Mis instrucciones se perdieron cuando mi creador me programó.`;
+          historyEl.appendChild(secondBotMsg);
+          historyEl.scrollTop = historyEl.scrollHeight;
+        }, 3000);
       }, 1000);
       return;
     }

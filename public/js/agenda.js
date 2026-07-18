@@ -234,8 +234,16 @@ const AgendaModule = {
     }, false));
   },
 
-  /** Eliminar tarjeta del DOM */
-  eliminarEvento(id) {
+  /** Eliminar tarjeta del DOM y DB */
+  async eliminarEvento(id) {
+    if (!confirm('¿Seguro que deseas eliminar este evento?')) return;
+    
+    try {
+      await fetch(`/api/events/${id}`, { method: 'DELETE' });
+    } catch (e) {
+      console.error('Error eliminando evento', e);
+    }
+    
     const card = document.getElementById(`ev-${id}`);
     if (!card) return;
     
@@ -280,7 +288,7 @@ const AgendaModule = {
         // Enviar al servidor como evento manual
         const evt = {
           titulo: manual.trim(),
-          dia: \`Día \${diaNum}\`,
+          dia: `Día ${diaNum}`,
           diaNum: diaNum,
           hora: 'Por definir', // Se podría extraer con regex pero por simplicidad
           autor: 'Usuario (Manual)',
@@ -289,7 +297,7 @@ const AgendaModule = {
         // Emitir al socket si existe la función, o agregarlo localmente
         if (typeof socket !== 'undefined') {
           socket.emit('nuevo_mensaje', { 
-            texto: \`Evento manual: \${manual} el día \${diaNum}\`, 
+            texto: `Evento manual: ${manual} el día ${diaNum}`, 
             channelId: 'agenda', 
             autor: 'Sistema' 
           });

@@ -129,16 +129,30 @@ function socketHandler(io) {
         detectarCitaIA(texto).then(async (cita) => {
           if (!cita) return;
 
-          const eventoDoc = await Event.create({
-            titulo:        cita.titulo || texto.slice(0, 100),
-            dia:           cita.dia,
-            diaNum:        cita.diaNum,
-            hora:          cita.hora,
-            autor,
-            channelId,
-            fuente:        'ia',
-            mensajeOrigen: msgDoc._id,
-          });
+          const foundTitle = cita.titulo || texto.slice(0, 100);
+          const foundDia = cita.dia;
+          let eventoDoc = await Event.findOne({ titulo: foundTitle, dia: foundDia });
+
+          if (eventoDoc) {
+            // Deduplicación: agregar autor si no existe
+            const autores = eventoDoc.autor.split(',').map(a => a.trim()).filter(Boolean);
+            if (!autores.includes(autor)) {
+              autores.push(autor);
+              eventoDoc.autor = autores.join(', ');
+            }
+            await eventoDoc.save();
+          } else {
+            eventoDoc = await Event.create({
+              titulo:        foundTitle,
+              dia:           foundDia,
+              diaNum:        cita.diaNum,
+              hora:          cita.hora,
+              autor,
+              channelId,
+              fuente:        'ia',
+              mensajeOrigen: msgDoc._id,
+            });
+          }
 
           await Message.findByIdAndUpdate(msgDoc._id, { tieneEvento: true });
 

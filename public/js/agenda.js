@@ -112,26 +112,29 @@ function actualizarContador() {
 ════════════════════════════════════════════════════════════════ */
 function renderizarEvento(evento, animado = true) {
   const evId = `ev-${evento.id}`;
-  if (document.getElementById(evId)) return;
-
-  const horaCreado = new Date(evento.createdAt).toLocaleTimeString('es-MX', {
+  const horaCreado = new Date(evento.createdAt || Date.now()).toLocaleTimeString('es-MX', {
     hour: '2-digit', minute: '2-digit',
   });
+  let autorHtml = '';
+  if (evento.autor) {
+    const autores = evento.autor.split(',').map(a => a.trim()).filter(Boolean);
+    if (autores.length === 1) {
+      autorHtml = `<span class="event-tag autor-tag">👤 ${escapeHtml(autores[0])}</span>`;
+    } else {
+      autorHtml = `<span class="event-tag autor-tag tooltip" style="cursor:pointer;" onclick="alert('Escrito por:\\n${escapeHtml(autores.join('\\n'))}')" title="Haz clic para ver quiénes">👥 ${autores.length} personas</span>`;
+    }
+  }
 
-  const fuenteHtml = evento.fuente === 'n8n'
-    ? `<span class="event-tag src-n8n">⚡ n8n</span>`
-    : `<span class="event-tag src-local">🤖 IA</span>`;
+  let fuenteHtml = '';
+  if (evento.fuente === 'n8n') {
+    fuenteHtml = `<span class="event-tag src-n8n">⚡ n8n</span>`;
+  } else if (evento.fuente === 'manual') {
+    fuenteHtml = `<span class="event-tag src-manual" style="background:#fff3cd; color:#856404; border:1px solid #ffeeba;">✍️ Manualmente</span>`;
+  } else {
+    fuenteHtml = `<span class="event-tag src-local">🤖 IA</span>`;
+  }
 
-  const autorHtml = evento.autor
-    ? `<span class="event-tag autor-tag">👤 ${escapeHtml(evento.autor)}</span>`
-    : '';
-
-  const card = document.createElement('div');
-  card.id        = evId;
-  card.className = 'event-card' + (animado ? ' anim-slide-right' : '');
-  card.dataset.diaNum = evento.diaNum || '';
-
-  card.innerHTML = `
+  const cardHtml = `
     <div class="event-card-header">
       <span class="event-card-title">${escapeHtml(evento.titulo)}</span>
       <button class="event-card-delete"
@@ -144,8 +147,25 @@ function renderizarEvento(evento, animado = true) {
       ${autorHtml}
       ${fuenteHtml}
     </div>
-    <div class="event-card-footer">Detectado a las ${horaCreado}</div>
+    <div class="event-card-footer">Actualizado a las ${horaCreado}</div>
   `;
+
+  let card = document.getElementById(evId);
+  if (card) {
+    // Actualizar tarjeta existente
+    card.innerHTML = cardHtml;
+    if (animado) {
+      card.classList.add('flash-new');
+      setTimeout(() => card.classList.remove('flash-new'), 2000);
+    }
+    return;
+  }
+
+  card = document.createElement('div');
+  card.id        = evId;
+  card.className = 'event-card' + (animado ? ' anim-slide-right' : '');
+  card.dataset.diaNum = evento.diaNum || '';
+  card.innerHTML = cardHtml;
 
   agendaBodyEl.appendChild(card);
   actualizarContador();
@@ -386,7 +406,7 @@ const AgendaModule = {
       diaNum: diaNum,
       hora: hora,
       autor: autor,
-      fuente: 'local',
+      fuente: 'manual',
       desc: desc
     };
     

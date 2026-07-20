@@ -256,14 +256,29 @@ router.get('/events', async (req, res) => {
 router.post('/events', async (req, res) => {
   try {
     const { titulo, dia, diaNum, hora, autor, fuente, desc } = req.body;
-    const evento = await Event.create({
-      titulo: desc ? `${titulo} - ${desc}` : titulo,
-      dia: dia,
-      diaNum: diaNum,
-      hora: hora,
-      autor: autor || 'Usuario',
-      fuente: fuente || 'local'
-    });
+    const finalTitulo = desc ? `${titulo} - ${desc}` : titulo;
+    
+    let evento = await Event.findOne({ titulo: finalTitulo, dia: dia });
+
+    if (evento) {
+      // Deduplicación de autor
+      const autores = evento.autor.split(',').map(a => a.trim()).filter(Boolean);
+      const authAdd = autor || 'Usuario';
+      if (!autores.includes(authAdd)) {
+        autores.push(authAdd);
+        evento.autor = autores.join(', ');
+      }
+      await evento.save();
+    } else {
+      evento = await Event.create({
+        titulo: finalTitulo,
+        dia: dia,
+        diaNum: diaNum,
+        hora: hora,
+        autor: autor || 'Usuario',
+        fuente: fuente || 'manual'
+      });
+    }
     
     const io = req.app.get('io');
     if (io) {

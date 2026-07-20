@@ -297,6 +297,17 @@ socket.on('evento_detectado', (ev) => {
   );
 });
 
+// Mensaje eliminado por admin
+socket.on('mensaje_eliminado', (data) => {
+  const el = document.getElementById(`msg-${data._id}`);
+  if (el) {
+    el.style.transition = 'opacity 0.2s, transform 0.2s';
+    el.style.opacity = '0';
+    el.style.transform = 'scale(0.9)';
+    setTimeout(() => el.remove(), 200);
+  }
+});
+
 // Typing indicator
 socket.on('escribiendo', (data) => {
   if (data.socketId === mySocketId) return;

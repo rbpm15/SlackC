@@ -131,7 +131,12 @@
         style="background: none; border: none; font-size: 24px; color: var(--text-light); cursor: pointer;">&times;</button>
     </div>
 
-    <div style="margin-top: 20px; overflow-x: auto;">
+    <div style="margin-top: 10px; margin-bottom: 20px;">
+      <button id="adminTabUsers" style="padding: 8px 16px; border: none; background: var(--slack-primary); color: white; border-radius: 4px; cursor: pointer; font-weight: 500;">Usuarios</button>
+      <button id="adminTabMessages" style="padding: 8px 16px; border: 1px solid var(--border-color); background: white; color: var(--text-main); border-radius: 4px; cursor: pointer; margin-left: 8px; font-weight: 500;">Mensajes</button>
+    </div>
+
+    <div id="adminPanelUsers" style="overflow-x: auto;">
       <table style="width: 100%; border-collapse: collapse; text-align: left; color: var(--slack-text);">
         <thead>
           <tr style="border-bottom: 2px solid rgba(0,0,0,0.1);">
@@ -143,6 +148,26 @@
           </tr>
         </thead>
         <tbody id="adminUsersTableBody">
+          <!-- Cargado por JS -->
+        </tbody>
+      </table>
+    </div>
+
+    <div id="adminPanelMessages" style="overflow-x: auto; display: none;">
+      <div style="margin-bottom: 10px; display: flex; gap: 10px;">
+        <input type="text" id="adminMessagesSearch" placeholder="Buscar texto de mensaje..." style="padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; width: 100%; max-width: 300px;">
+        <button id="adminMessagesRefresh" style="padding: 6px 12px; background: var(--slack-blue); color: white; border: none; border-radius: 4px; cursor: pointer;">Buscar</button>
+      </div>
+      <table style="width: 100%; border-collapse: collapse; text-align: left; color: var(--slack-text);">
+        <thead>
+          <tr style="border-bottom: 2px solid rgba(0,0,0,0.1);">
+            <th style="padding: 10px; width: 15%;">Autor</th>
+            <th style="padding: 10px; width: 55%;">Mensaje</th>
+            <th style="padding: 10px; width: 15%;">Fecha</th>
+            <th style="padding: 10px; width: 15%;">Acción</th>
+          </tr>
+        </thead>
+        <tbody id="adminMessagesTableBody">
           <!-- Cargado por JS -->
         </tbody>
       </table>

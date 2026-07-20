@@ -362,4 +362,47 @@ router.post('/admin/users/:username/toggle', async (req, res) => {
   }
 });
 
+// Admin Get Messages
+router.get('/admin/messages', async (req, res) => {
+  if (req.headers['authorization'] !== 'Bearer superadmin_token_123') {
+    return res.status(403).json({ ok: false, error: 'No autorizado' });
+  }
+  try {
+    const search = req.query.search || '';
+    let query = {};
+    if (search) {
+      query.texto = new RegExp(search, 'i');
+    }
+    
+    const messages = await Message.find(query)
+      .sort({ createdAt: -1 })
+      .limit(100)
+      .lean();
+      
+    res.json({ ok: true, data: messages });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
+// Admin Delete Message
+router.delete('/admin/messages/:id', async (req, res) => {
+  if (req.headers['authorization'] !== 'Bearer superadmin_token_123') {
+    return res.status(403).json({ ok: false, error: 'No autorizado' });
+  }
+  try {
+    const msg = await Message.findByIdAndDelete(req.params.id);
+    if (msg) {
+      // Opcional: Emitir por socket para borrar en tiempo real del DOM a los clientes conectados si se necesita
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('mensaje_eliminado', { _id: req.params.id, channelId: msg.channelId });
+      }
+    }
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 module.exports = router;

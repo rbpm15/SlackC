@@ -400,6 +400,14 @@ document.getElementById('btnAgregarCanal')?.addEventListener('click', () => {
   setTimeout(() => document.getElementById('newChannelInput')?.focus(), 100);
 });
 
+document.querySelectorAll('.add-section-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation(); // Evitar que colapse la lista
+    document.getElementById('newChannelModal').style.display = 'flex';
+    setTimeout(() => document.getElementById('newChannelInput')?.focus(), 100);
+  });
+});
+
 document.getElementById('newChannelClose')?.addEventListener('click', () => {
   document.getElementById('newChannelModal').style.display = 'none';
 });

@@ -5,27 +5,39 @@ document.addEventListener('DOMContentLoaded', () => {
   const btnCloseChatbot = document.getElementById('btnCloseChatbot');
   const chatbotPanel = document.getElementById('chatbotPanel');
   const agendaPanel = document.getElementById('agendaPanel');
+  const btnToggleRightPanel = document.getElementById('btnToggleRightPanel');
 
-  function toggleChatbot() {
-    const isChatbotVisible = chatbotPanel.style.display !== 'none';
+  // Inicializar estado de botones
+  if (btnToggleRightPanel) btnToggleRightPanel.style.display = 'none';
 
-    if (isChatbotVisible) {
-      chatbotPanel.style.display = 'none';
-      agendaPanel.style.display = 'flex';
-    } else {
-      chatbotPanel.style.display = 'flex';
-      agendaPanel.style.display = 'none';
-    }
+  function switchToChatbot(e) {
+    if (e) e.stopPropagation();
+    chatbotPanel.style.display = 'flex';
+    agendaPanel.style.display = 'none';
+    if (btnToggleChatbot) btnToggleChatbot.style.display = 'none';
+    if (btnToggleRightPanel) btnToggleRightPanel.style.display = 'inline-flex';
+  }
+
+  function switchToAgenda(e) {
+    if (e) e.stopPropagation();
+    chatbotPanel.style.display = 'none';
+    agendaPanel.style.display = 'flex';
+    if (btnToggleRightPanel) btnToggleRightPanel.style.display = 'none';
+    if (btnToggleChatbot) btnToggleChatbot.style.display = 'inline-flex';
   }
 
   if (btnToggleChatbot) {
-    btnToggleChatbot.addEventListener('click', toggleChatbot);
+    btnToggleChatbot.addEventListener('click', switchToChatbot);
+  }
+
+  if (btnToggleRightPanel) {
+    btnToggleRightPanel.addEventListener('click', switchToAgenda);
   }
 
   if (btnCloseChatbot) {
     btnCloseChatbot.addEventListener('click', () => {
-      chatbotPanel.style.display = 'none';
-      agendaPanel.style.display = 'flex';
+      // Al cerrar el chatbot desde la X, volvemos a la agenda
+      switchToAgenda();
     });
   }
 

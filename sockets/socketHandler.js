@@ -191,7 +191,7 @@ function socketHandler(io) {
         }).catch(err => console.error('[Socket] Error IA cita:', err.message));
 
         // 5. Interacción directa con el Bot si el canal es slcbot o si lo mencionan en cualquier canal
-        if ((channelId === 'slcbot' || texto.includes('@SLC BOT')) && autor !== 'SLC BOT') {
+        if ((channelId === 'slcbot' || texto.includes('@SLC BOT') || texto.toLowerCase().includes('@slc')) && autor !== 'SLC BOT') {
           const { chatConBot, resumirConversacion } = require('../services/agendaAI');
           
           // Emitimos que el bot está "escribiendo"

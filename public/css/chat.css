@@ -171,6 +171,28 @@
   white-space: pre-wrap;
 }
 
+.msg-reactions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 4px;
+}
+.msg-reaction-btn {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 2px 6px;
+  font-size: 12px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--text-main);
+  transition: background 0.1s;
+}
+.msg-reaction-btn:hover { background: rgba(37,99,235,0.1); border-color: #3B82F6; }
+.reaction-count { font-weight: 600; color: #3B82F6; }
+
 /* Hover action bar */
 .msg-actions {
   position: absolute;

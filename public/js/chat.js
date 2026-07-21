@@ -112,6 +112,17 @@ function renderizarMensaje(msg, animado = true) {
   const color   = msg.isOwn ? '#1264A3' : colorDeAutor(msg.autor);
   const horaStr = formatHour(msg.createdAt);
 
+  const textoHTML = msg.isDeleted ? `<em style="color:#999;">Mensaje eliminado</em>` : parseMarkdown(escapeHtml(msg.texto));
+
+  let reactionsHTML = '';
+  if (msg.reactions && msg.reactions.length > 0) {
+    reactionsHTML = '<div class="msg-reactions">';
+    msg.reactions.forEach(r => {
+      reactionsHTML += `<button class="msg-reaction-btn" data-emoji="${r.emoji}" title="${r.users.join(', ')}">${r.emoji} <span class="reaction-count">${r.users.length}</span></button>`;
+    });
+    reactionsHTML += '</div>';
+  }
+
   const wrapper = document.createElement('div');
   wrapper.id    = domId;
   wrapper.className = [
@@ -132,16 +143,54 @@ function renderizarMensaje(msg, animado = true) {
           ${msg.isOwn ? '<span class="own-badge">Tú</span>' : ''}
           <span class="msg-time">${horaStr}</span>
         </div>` : `<span class="msg-time grouped-time">${horaStr}</span>`}
-      <div class="msg-text">${parseMarkdown(escapeHtml(msg.texto))}</div>
+      <div class="msg-text">${textoHTML}</div>
+      ${reactionsHTML}
     </div>
     <div class="msg-actions">
-      <button class="msg-action-btn" title="Reaccionar">😀</button>
-      <button class="msg-action-btn" title="Responder">💬</button>
+      <button class="msg-action-btn btn-react" data-id="${msg.id}" title="Reaccionar">😀</button>
+      <button class="msg-action-btn btn-reply" data-autor="${escapeHtml(msg.autor)}" title="Responder">💬</button>
+      ${msg.isOwn && !msg.isDeleted ? `<button class="msg-action-btn btn-delete" data-id="${msg.id}" title="Eliminar">🗑️</button>` : ''}
     </div>
   `;
 
   feedEl.appendChild(wrapper);
   if (animado) feedEl.scrollTop = feedEl.scrollHeight;
+}
+
+/* ════════════════════════════════════════════════════════════════
+   ACTUALIZAR MENSAJE (Reacciones, Eliminado)
+   ════════════════════════════════════════════════════════════════ */
+function actualizarMensaje(msg) {
+  const el = document.getElementById(`msg-${msg._id}`);
+  if (!el) return;
+
+  const textEl = el.querySelector('.msg-text');
+  if (textEl) {
+    textEl.innerHTML = msg.isDeleted ? `<em style="color:#999;">Mensaje eliminado</em>` : parseMarkdown(escapeHtml(msg.texto));
+  }
+
+  // Update reactions
+  let reactionsContainer = el.querySelector('.msg-reactions');
+  if (msg.reactions && msg.reactions.length > 0) {
+    if (!reactionsContainer) {
+      reactionsContainer = document.createElement('div');
+      reactionsContainer.className = 'msg-reactions';
+      textEl.parentNode.appendChild(reactionsContainer);
+    }
+    let html = '';
+    msg.reactions.forEach(r => {
+      html += `<button class="msg-reaction-btn" data-emoji="${r.emoji}" title="${r.users.join(', ')}">${r.emoji} <span class="reaction-count">${r.users.length}</span></button>`;
+    });
+    reactionsContainer.innerHTML = html;
+  } else if (reactionsContainer) {
+    reactionsContainer.remove();
+  }
+
+  // Remove delete button if deleted
+  if (msg.isDeleted) {
+    const delBtn = el.querySelector('.btn-delete');
+    if (delBtn) delBtn.remove();
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -512,13 +561,17 @@ window.ChatModule = {
   seleccionarCanal,
 
   cargarHistorial(mensajes = []) {
+    const myName = localStorage.getItem('slacia_name');
     mensajes.forEach(m => renderizarMensaje({
       id:        m._id || m.id,
       autor:     m.autor || 'Anónimo',
       texto:     m.texto,
       createdAt: m.createdAt,
-      isOwn:     false,
+      isOwn:     m.autor === myName,
+      isDeleted: m.isDeleted,
+      reactions: m.reactions,
     }, false));
     feedEl.scrollTop = feedEl.scrollHeight;
   },
+  actualizarMensaje,
 };

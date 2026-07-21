@@ -260,6 +260,68 @@ function socketHandler(io) {
       // (en una implementación completa, persistiría en BD)
     });
 
+    // ── Eliminar mensaje (soft delete) ───────────────────────────
+    socket.on('eliminar_mensaje', async (data) => {
+      const { messageId, autor, channelId } = data || {};
+      if (!messageId || !autor || !channelId) return;
+
+      try {
+        const msg = await Message.findById(messageId);
+        if (msg && msg.autor === autor) {
+          msg.isDeleted = true;
+          msg.texto = 'Mensaje eliminado';
+          await msg.save();
+
+          io.to(channelId).emit('mensaje_actualizado', {
+            _id: msg._id,
+            texto: msg.texto,
+            isDeleted: msg.isDeleted,
+            reactions: msg.reactions,
+          });
+        }
+      } catch (err) {
+        console.error('[Socket] Error eliminando mensaje:', err.message);
+      }
+    });
+
+    // ── Reaccionar a mensaje ─────────────────────────────────────
+    socket.on('reaccionar_mensaje', async (data) => {
+      const { messageId, emoji, autor, channelId } = data || {};
+      if (!messageId || !emoji || !autor || !channelId) return;
+
+      try {
+        const msg = await Message.findById(messageId);
+        if (msg) {
+          // find if reaction exists
+          let reaction = msg.reactions.find(r => r.emoji === emoji);
+          if (reaction) {
+            // toggle user
+            if (reaction.users.includes(autor)) {
+              reaction.users = reaction.users.filter(u => u !== autor);
+            } else {
+              reaction.users.push(autor);
+            }
+          } else {
+            msg.reactions.push({ emoji, users: [autor] });
+          }
+          
+          // filter out reactions with 0 users
+          msg.reactions = msg.reactions.filter(r => r.users.length > 0);
+          
+          await msg.save();
+
+          io.to(channelId).emit('mensaje_actualizado', {
+            _id: msg._id,
+            texto: msg.texto,
+            isDeleted: msg.isDeleted,
+            reactions: msg.reactions,
+          });
+        }
+      } catch (err) {
+        console.error('[Socket] Error reaccionando a mensaje:', err.message);
+      }
+    });
+
     // ── Desconexión ──────────────────────────────────────────────
     socket.on('disconnect', () => {
       const info = usuariosOnline.get(socket.id);

@@ -41,6 +41,19 @@ const MessageSchema = new mongoose.Schema(
       ref: 'Channel',
       required: true,
     },
+    isDeleted: {
+      type: Boolean,
+      default: false,
+    },
+    reactions: {
+      type: [
+        {
+          emoji: String,
+          users: [String]
+        }
+      ],
+      default: []
+    }
   },
   {
     timestamps: true,

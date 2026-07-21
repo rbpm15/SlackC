@@ -138,6 +138,30 @@ document.getElementById('nameInput').addEventListener('keydown', e => {
 });
 
 /* ════════════════════════════════════════════════════════════════
+   NOTIFICACIONES DE ESCRITORIO
+════════════════════════════════════════════════════════════════ */
+function initNotifications() {
+  if ("Notification" in window) {
+    if (Notification.permission !== "granted" && Notification.permission !== "denied") {
+      Notification.requestPermission();
+    }
+  }
+}
+
+function enviarNotificacionDesktop(titulo, cuerpo) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    new Notification(titulo, { body: cuerpo });
+  } else if (Notification.permission !== "denied") {
+    Notification.requestPermission().then(permission => {
+      if (permission === "granted") {
+        new Notification(titulo, { body: cuerpo });
+      }
+    });
+  }
+}
+
+/* ════════════════════════════════════════════════════════════════
    SOCKET.IO
 ════════════════════════════════════════════════════════════════ */
 const socket = io({ transports: ['websocket', 'polling'] });
@@ -222,9 +246,63 @@ emojiPicker?.addEventListener('click', (e) => {
   if (btn) {
     const emoji = btn.getAttribute('data-emoji');
     if (emoji) {
-      applyFormatting(emoji, '');
+      if (window.targetMessageIdForEmoji) {
+        socket.emit('reaccionar_mensaje', {
+          messageId: window.targetMessageIdForEmoji,
+          emoji,
+          autor: myName,
+          channelId: ChatModule.getCurrentChannelId()
+        });
+        window.targetMessageIdForEmoji = null;
+      } else {
+        applyFormatting(emoji, '');
+      }
       emojiPicker.style.display = 'none';
     }
+  }
+});
+
+// Message actions (Delete, Reply, React)
+document.addEventListener('click', (e) => {
+  const btnDelete = e.target.closest('.btn-delete');
+  if (btnDelete) {
+    const msgId = btnDelete.dataset.id;
+    if (confirm('¿Eliminar este mensaje?')) {
+      socket.emit('eliminar_mensaje', { messageId: msgId, autor: myName, channelId: ChatModule.getCurrentChannelId() });
+    }
+    return;
+  }
+
+  const btnReply = e.target.closest('.btn-reply');
+  if (btnReply) {
+    const autor = btnReply.dataset.autor;
+    const chatInput = document.getElementById('chatInput');
+    if (chatInput) {
+      chatInput.value = `> En respuesta a @${autor}:\n` + chatInput.value;
+      chatInput.focus();
+    }
+    return;
+  }
+
+  const btnReact = e.target.closest('.btn-react');
+  if (btnReact) {
+    e.stopPropagation();
+    window.targetMessageIdForEmoji = btnReact.dataset.id;
+    if (emojiPicker) {
+      emojiPicker.style.display = 'grid';
+    }
+    return;
+  }
+
+  const btnExistingReaction = e.target.closest('.msg-reaction-btn');
+  if (btnExistingReaction) {
+    const msgEl = btnExistingReaction.closest('.slack-message');
+    if (msgEl) {
+      const msgId = msgEl.id.replace('msg-', '');
+      const emoji = btnExistingReaction.dataset.emoji;
+      socket.emit('reaccionar_mensaje', { messageId: msgId, emoji, autor: myName, channelId: ChatModule.getCurrentChannelId() });
+    }
+    return;
   }
 });
 
@@ -420,6 +498,11 @@ socket.on('mensaje_recibido', (msg) => {
   const isOwn = msg.socketId === mySocketId;
   if (msg.tmpId) _pendingIds.delete(msg.tmpId);
 
+  // Si estamos en segundo plano, lanzar notificación para mensajes recibidos
+  if (!isOwn && document.hidden) {
+    enviarNotificacionDesktop(`Mensaje de ${msg.autor}`, msg.texto);
+  }
+
   // Solo renderizar si el canal coincide con el canal visible
   if (msg.channelId !== ChatModule.getCurrentChannelId()) {
     // Canal diferente → solo incrementar badge
@@ -442,6 +525,17 @@ socket.on('mensaje_recibido', (msg) => {
 socket.on('mensaje_no_leido', (data) => {
   if (data.channelId !== ChatModule.getCurrentChannelId()) {
     ChatModule.incrementarNoLeido(data.channelId);
+    // Notificación desktop (incluso si no estamos hidden, si estamos en otro canal, a menos que hidden)
+    if (document.hidden) {
+      enviarNotificacionDesktop(`Nueva actividad`, `Hay mensajes nuevos de ${data.autor || 'alguien'}.`);
+    }
+  }
+});
+
+// Actualización de mensaje (reacciones, eliminado)
+socket.on('mensaje_actualizado', (msg) => {
+  if (window.ChatModule && typeof window.ChatModule.actualizarMensaje === 'function') {
+    window.ChatModule.actualizarMensaje(msg);
   }
 });
 
@@ -451,6 +545,9 @@ socket.on('evento_detectado', (ev) => {
   ChatModule.renderizarMensajeSistema(
     `📅 Agenda: ${ev.dia} a las ${ev.hora} — "${(ev.titulo || '').slice(0, 60)}"`
   );
+  if (document.hidden) {
+    enviarNotificacionDesktop('Nuevo evento en agenda', `${ev.titulo} (${ev.dia})`);
+  }
 });
 
 // Mensaje eliminado por admin
@@ -553,6 +650,9 @@ async function cargarInicial() {
 
     // DMs solo si ya tenemos nombre
     if (myName) cargarDMs();
+
+    // Pedir permisos de notificaciones al cargar app
+    initNotifications();
 
   } catch (e) {
     console.error('[App] Error carga inicial:', e.message);

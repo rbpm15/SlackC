@@ -69,7 +69,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add User message
     const userMsg = document.createElement('div');
-    userMsg.style.cssText = "background: rgba(255,255,255,0.05); padding: 8px; border-radius: 6px; margin-left: 20px;";
+    userMsg.className = 'chatbot-msg chatbot-msg-user';
     userMsg.innerHTML = `<strong>Tú:</strong> ${text}`;
     historyEl.appendChild(userMsg);
     historyEl.scrollTop = historyEl.scrollHeight;
@@ -78,8 +78,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Add thinking indicator
     const botMsg = document.createElement('div');
-    botMsg.style.cssText = "background: rgba(54,197,240,0.1); padding: 8px; border-radius: 6px; margin-right: 20px;";
-    botMsg.innerHTML = `<strong>SLC BOT:</strong> <em>Escribiendo...</em>`;
+    botMsg.className = 'chatbot-msg chatbot-msg-bot';
+    botMsg.innerHTML = `<strong>SLC BOT:</strong> <em>Analizando...</em>`;
     historyEl.appendChild(botMsg);
     historyEl.scrollTop = historyEl.scrollHeight;
 
@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
         setTimeout(() => {
           const secondBotMsg = document.createElement('div');
-          secondBotMsg.style.cssText = "background: rgba(54,197,240,0.1); padding: 8px; border-radius: 6px; margin-right: 20px;";
+          secondBotMsg.className = 'chatbot-msg chatbot-msg-bot';
           secondBotMsg.innerHTML = `<strong>SLC BOT:</strong> 🤡 ¡Ah, te la creíste! Mis instrucciones se perdieron cuando mi creador me programó.`;
           historyEl.appendChild(secondBotMsg);
           historyEl.scrollTop = historyEl.scrollHeight;
@@ -102,13 +102,22 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     try {
+      // Obtener el canal actual para contexto
+      const currentChannelId = typeof ChatModule !== 'undefined' ? ChatModule.getCurrentChannelId() : null;
+
       const res = await fetch('/api/bot/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texto: text })
+        body: JSON.stringify({ texto: text, channelId: currentChannelId })
       });
       const data = await res.json();
-      botMsg.innerHTML = `<strong>SLC BOT:</strong> ${data.respuesta || 'Error obteniendo respuesta.'}`;
+      
+      // Renderizar respuesta con formato (soportar markdown básico del bot)
+      let respuestaHtml = (data.respuesta || 'Error obteniendo respuesta.')
+        .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\n/g, '<br>');
+      
+      botMsg.innerHTML = `<strong>SLC BOT:</strong> ${respuestaHtml}`;
     } catch (e) {
       botMsg.innerHTML = `<strong>SLC BOT:</strong> <em>Error de conexión.</em>`;
     }

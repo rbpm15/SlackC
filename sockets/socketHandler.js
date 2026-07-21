@@ -142,6 +142,23 @@ function socketHandler(io) {
             }
             await eventoDoc.save();
           } else {
+            // Calcular fechaEvento y fechaExpiracion
+            let fechaEvento = null;
+            let fechaExpiracion = null;
+            const hoy = new Date();
+
+            if (cita.diaNum) {
+              // Fecha exacta: fin del día del evento
+              fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth(), cita.diaNum, 23, 59, 59);
+              // Si la fecha ya pasó en este mes, podría ser el mes siguiente
+              if (fechaEvento < hoy) {
+                fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth() + 1, cita.diaNum, 23, 59, 59);
+              }
+            } else {
+              // Fecha vaga ("la próxima semana", etc.) — expira en 7 días
+              fechaExpiracion = new Date(hoy.getTime() + 7 * 24 * 60 * 60 * 1000);
+            }
+
             eventoDoc = await Event.create({
               titulo:        foundTitle,
               dia:           foundDia,
@@ -151,6 +168,8 @@ function socketHandler(io) {
               channelId,
               fuente:        'ia',
               mensajeOrigen: msgDoc._id,
+              fechaEvento,
+              fechaExpiracion,
             });
           }
 
@@ -171,9 +190,9 @@ function socketHandler(io) {
 
         }).catch(err => console.error('[Socket] Error IA cita:', err.message));
 
-        // 5. Interacción directa con el Bot si el canal es slcbot
-        if (channelId === 'slcbot' && autor !== 'SLC BOT') {
-          const { chatConBot } = require('../services/agendaAI');
+        // 5. Interacción directa con el Bot si el canal es slcbot o si lo mencionan en cualquier canal
+        if ((channelId === 'slcbot' || texto.includes('@SLC BOT')) && autor !== 'SLC BOT') {
+          const { chatConBot, resumirConversacion } = require('../services/agendaAI');
           
           // Emitimos que el bot está "escribiendo"
           io.to(channelId).emit('escribiendo', {
@@ -182,7 +201,32 @@ function socketHandler(io) {
             channelId
           });
 
-          chatConBot(texto).then(async (respuesta) => {
+          // Detectar si pide resumen
+          const textoLower = texto.toLowerCase();
+          const esResumen = /\b(resumen|resum[eé]|resumir|qu[eé]\s+se\s+habl[oó]|qu[eé]\s+pas[oó]|lo\s+importante|puntos\s+clave)\b/i.test(textoLower);
+
+          let respuestaPromise;
+          if (esResumen) {
+            // Buscar mensajes del día en todos los canales (no solo slcbot)
+            const inicioHoy = new Date();
+            inicioHoy.setHours(0, 0, 0, 0);
+            respuestaPromise = Message.find({
+              createdAt: { $gte: inicioHoy },
+              tipo: 'usuario',
+            }).sort({ createdAt: 1 }).limit(200).lean()
+              .then(msgs => resumirConversacion(msgs));
+          } else {
+            // Chat normal con contexto
+            const recentMsgs = await Message.find({ channelId })
+              .sort({ createdAt: -1 }).limit(20).lean();
+            const contexto = {
+              usuariosOnline: obtenerNombresOnline(),
+              mensajesRecientes: recentMsgs.reverse().filter(m => m.autor !== 'SLC BOT'),
+            };
+            respuestaPromise = chatConBot(texto, contexto);
+          }
+
+          respuestaPromise.then(async (respuesta) => {
             const botMsgDoc = await Message.create({
               texto: respuesta,
               autor: 'SLC BOT',

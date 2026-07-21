@@ -169,6 +169,7 @@ function actualizarEstadoConexion(online) {
 const chatInputEl = document.getElementById('chatInput');
 const sendBtnEl   = document.getElementById('sendBtn');
 const _pendingIds = new Set();
+let _mentionActive = false; // declared early for keydown handler
 
 chatInputEl.addEventListener('input', () => {
   sendBtnEl.disabled = chatInputEl.value.trim().length === 0;
@@ -180,7 +181,7 @@ chatInputEl.addEventListener('input', () => {
 });
 
 chatInputEl.addEventListener('keydown', e => {
-  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); enviarMensaje(); }
+  if (e.key === 'Enter' && !e.shiftKey && !_mentionActive) { e.preventDefault(); enviarMensaje(); }
 });
 sendBtnEl.addEventListener('click', enviarMensaje);
 
@@ -231,6 +232,161 @@ emojiPicker?.addEventListener('click', (e) => {
 document.addEventListener('click', (e) => {
   if (emojiPicker && !emojiPicker.contains(e.target) && e.target !== btnEmoji) {
     emojiPicker.style.display = 'none';
+  }
+  // Also close mention dropdown
+  const mentionDropdown = document.getElementById('mentionDropdown');
+  if (mentionDropdown && !mentionDropdown.contains(e.target) && e.target !== chatInputEl) {
+    mentionDropdown.style.display = 'none';
+  }
+});
+
+/* ════════════════════════════════════════════════════════════════
+   @ MENTION SYSTEM
+════════════════════════════════════════════════════════════════ */
+let _mentionStart = -1;  // posición del @ en el texto
+// _mentionActive already declared above
+let _mentionIdx = 0;     // índice activo en el dropdown
+let _allUsers = [];      // cache de usuarios
+
+async function fetchUsersForMention() {
+  try {
+    const r = await fetch('/api/users');
+    const d = await r.json();
+    if (d.ok) _allUsers = d.data;
+  } catch { /* silencioso */ }
+}
+// Cargar usuarios al iniciar y periódicamente
+fetchUsersForMention();
+setInterval(fetchUsersForMention, 30000);
+
+function getMentionQuery() {
+  const text = chatInputEl.value;
+  const cursor = chatInputEl.selectionStart;
+  if (_mentionStart < 0 || cursor <= _mentionStart) return null;
+  return text.substring(_mentionStart + 1, cursor).toLowerCase();
+}
+
+function renderMentionDropdown(query) {
+  const dropdown = document.getElementById('mentionDropdown');
+  if (!dropdown) return;
+
+  const filtered = _allUsers.filter(u => 
+    u.toLowerCase().includes(query)
+  ).slice(0, 8);
+
+  if (filtered.length === 0) {
+    dropdown.style.display = 'none';
+    _mentionActive = false;
+    return;
+  }
+
+  _mentionIdx = 0;
+  dropdown.innerHTML = filtered.map((u, i) => {
+    const color = typeof colorDeAutor === 'function' ? colorDeAutor(u) : '#3B82F6';
+    const initials = u.split(' ').slice(0, 2).map(p => p[0] || '').join('').toUpperCase();
+    return `<div class="mention-item${i === 0 ? ' active' : ''}" data-user="${u}">
+      <span class="mention-item-avatar" style="background:${color}">${initials}</span>
+      <span class="mention-item-name">${u}</span>
+      <span class="mention-item-label">Miembro</span>
+    </div>`;
+  }).join('');
+
+  dropdown.style.display = 'block';
+  _mentionActive = true;
+
+  // Click en item
+  dropdown.querySelectorAll('.mention-item').forEach(item => {
+    item.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      insertMention(item.dataset.user);
+    });
+  });
+}
+
+function insertMention(username) {
+  const text = chatInputEl.value;
+  const cursor = chatInputEl.selectionStart;
+  const before = text.substring(0, _mentionStart);
+  const after = text.substring(cursor);
+  const newText = `${before}@${username} ${after}`;
+
+  chatInputEl.value = newText;
+  const newPos = _mentionStart + username.length + 2; // @name + space
+  chatInputEl.selectionStart = newPos;
+  chatInputEl.selectionEnd = newPos;
+  chatInputEl.focus();
+
+  sendBtnEl.disabled = chatInputEl.value.trim().length === 0;
+
+  // Cerrar dropdown
+  const dropdown = document.getElementById('mentionDropdown');
+  if (dropdown) dropdown.style.display = 'none';
+  _mentionActive = false;
+  _mentionStart = -1;
+}
+
+// Escuchar input para detectar @
+chatInputEl.addEventListener('input', () => {
+  const text = chatInputEl.value;
+  const cursor = chatInputEl.selectionStart;
+
+  // Buscar el último @ antes del cursor
+  const beforeCursor = text.substring(0, cursor);
+  const lastAt = beforeCursor.lastIndexOf('@');
+
+  if (lastAt >= 0) {
+    // Verificar que @ es inicio de palabra (espacio o inicio)
+    const charBefore = lastAt > 0 ? text[lastAt - 1] : ' ';
+    if (charBefore === ' ' || charBefore === '\n' || lastAt === 0) {
+      const queryPart = beforeCursor.substring(lastAt + 1);
+      // Solo activar si no hay espacios en la query (aún escribiendo el nombre)
+      if (!queryPart.includes(' ')) {
+        _mentionStart = lastAt;
+        renderMentionDropdown(queryPart.toLowerCase());
+        return;
+      }
+    }
+  }
+
+  // No hay @ activo, cerrar dropdown
+  const dropdown = document.getElementById('mentionDropdown');
+  if (dropdown) dropdown.style.display = 'none';
+  _mentionActive = false;
+  _mentionStart = -1;
+});
+
+// Navegación con teclado en el dropdown
+chatInputEl.addEventListener('keydown', (e) => {
+  if (!_mentionActive) return;
+
+  const dropdown = document.getElementById('mentionDropdown');
+  if (!dropdown) return;
+  const items = dropdown.querySelectorAll('.mention-item');
+  if (items.length === 0) return;
+
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    items[_mentionIdx]?.classList.remove('active');
+    _mentionIdx = (_mentionIdx + 1) % items.length;
+    items[_mentionIdx]?.classList.add('active');
+    items[_mentionIdx]?.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    items[_mentionIdx]?.classList.remove('active');
+    _mentionIdx = (_mentionIdx - 1 + items.length) % items.length;
+    items[_mentionIdx]?.classList.add('active');
+    items[_mentionIdx]?.scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter' || e.key === 'Tab') {
+    if (_mentionActive && items[_mentionIdx]) {
+      e.preventDefault();
+      e.stopPropagation();
+      insertMention(items[_mentionIdx].dataset.user);
+      return;
+    }
+  } else if (e.key === 'Escape') {
+    dropdown.style.display = 'none';
+    _mentionActive = false;
+    _mentionStart = -1;
   }
 });
 

@@ -1,62 +1,80 @@
 <!-- ── CHATBOT PANEL ─────────────────────────────────────── -->
 <aside class="chatbot-panel" id="chatbotPanel" style="display:none">
   <div class="chatbot-header">
-    <button class="chatbot-close-btn" id="btnCloseChatbot">×</button>
+    <button class="chatbot-close-btn" id="btnCloseChatbot">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M13 1L1 13M1 1L13 13" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+    </button>
   </div>
-  <div class="chatbot-body" style="display:flex; flex-direction:column; overflow:hidden; flex:1;">
-    <div id="chatbotIntro">
+  
+  <div class="chatbot-body">
+    <div id="chatbotIntro" class="chatbot-intro-modern">
       <div class="chatbot-icon-wrap">
-        <svg class="chatbot-logo-img" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-          <rect width="100" height="100" rx="20" fill="url(#botGrad)" />
+        <svg class="chatbot-logo-modern" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
           <defs>
-            <linearGradient id="botGrad" x1="0" y1="0" x2="100" y2="100">
-              <stop offset="0%" stop-color="#36C5F0" />
-              <stop offset="33%" stop-color="#2EB67D" />
-              <stop offset="66%" stop-color="#E01E5A" />
-              <stop offset="100%" stop-color="#ECB22E" />
+            <linearGradient id="logoGrad" x1="0" y1="0" x2="100" y2="100">
+              <stop offset="0%" stop-color="#3A636A"/>
+              <stop offset="100%" stop-color="#1B3842"/>
             </linearGradient>
           </defs>
-          <circle cx="35" cy="40" r="8" fill="#FFF" />
-          <circle cx="65" cy="40" r="8" fill="#FFF" />
-          <path d="M 35 60 Q 50 75 65 60" fill="none" stroke="#FFF" stroke-width="6" stroke-linecap="round" />
+          
+          <g stroke="url(#logoGrad)" stroke-width="7" stroke-linecap="round" fill="none">
+            <!-- Line A (Bottom-left to Top-center) -->
+            <path d="M 28 68 C 12 95, 80 98, 75 60 C 70 30, 25 55, 25 35 C 25 10, 65 5, 52 28" />
+            <!-- Line B (Top-right to Bottom-center) -->
+            <path d="M 72 32 C 88 5, 20 2, 25 40 C 30 70, 75 45, 75 65 C 75 90, 35 95, 48 72" />
+          </g>
+        
+          <!-- Details -->
+          <!-- Bottom-left dot -->
+          <circle cx="28" cy="68" r="6" fill="#1B3842"/>
+          <!-- Top-right dot -->
+          <circle cx="72" cy="32" r="6" fill="#3A636A"/>
+          
+          <!-- Clock element (Top-center) -->
+          <circle cx="52" cy="28" r="8.5" fill="url(#logoGrad)"/>
+          <path d="M 52 28 L 50 24 M 52 28 L 56 29" stroke="#FFFFFF" stroke-width="2.5" stroke-linecap="round"/>
+          
+          <!-- Arrow element (Bottom-center) -->
+          <path d="M 42 66 L 54 66 L 48 76 Z" stroke="url(#logoGrad)" stroke-width="5" fill="#FFFFFF" stroke-linejoin="round"/>
         </svg>
       </div>
-      <h2 class="chatbot-title">¡Hola! Soy SLC BOT.</h2>
-      <p class="chatbot-desc">Puedo ayudarte a trabajar de la mejor manera en SlacIA. Entre otras cosas, puedo hacer
-        lo siguiente:</p>
+      <h2 class="chatbot-title">¡Hola! Soy tu asistente SLC BOT.</h2>
+      <p class="chatbot-desc">Tu asistente de productividad en SlacIA. Estoy aquí para ayudarte a trabajar de forma más eficiente:</p>
 
       <div class="chatbot-actions">
-        <button class="chatbot-action-btn">
-          <span class="chatbot-btn-icon">🔍</span> Buscar y encontrar cosas
+        <button class="chatbot-action-btn" onclick="document.getElementById('chatbotQuickInput').value='Hazme un resumen de lo que se habló hoy'; document.getElementById('chatbotQuickInput').focus();">
+          <span class="chatbot-btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          </span> 
+          <span>Resumir conversaciones<br>del equipo</span>
         </button>
-        <button class="chatbot-action-btn">
-          <span class="chatbot-btn-icon">🧠</span> Crear y administrar contenido
+        <button class="chatbot-action-btn" onclick="document.getElementById('chatbotQuickInput').value='¿Qué tareas pendientes hay?'; document.getElementById('chatbotQuickInput').focus();">
+          <span class="chatbot-btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 11l3 3L22 4"></path><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"></path></svg>
+          </span> 
+          <span>Organizar tareas<br>y pendientes</span>
         </button>
-        <button class="chatbot-action-btn">
-          <span class="chatbot-btn-icon">📅</span> Administrar tu tiempo y tus datos
+        <button class="chatbot-action-btn" onclick="document.getElementById('chatbotQuickInput').value='¿Qué eventos tenemos próximamente?'; document.getElementById('chatbotQuickInput').focus();">
+          <span class="chatbot-btn-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          </span> 
+          <span>Consultar agenda y<br>próximos eventos</span>
         </button>
       </div>
     </div> <!-- /chatbotIntro -->
 
-    <!-- Chat history para el bot (nuevo) -->
-    <div id="chatbotHistory"
-      style="flex:1; overflow-y:auto; margin-top:15px; border-top:1px solid var(--border-color); padding-top:10px; display:flex; flex-direction:column; gap:10px; font-size:13px; color:var(--text-main);">
+    <div id="chatbotHistory" class="chatbot-history-modern">
       <!-- Mensajes del bot aquí -->
     </div>
 
-    <div style="margin-top:20px; display:flex; flex-direction:column; gap:10px; flex-shrink:0;">
-      <div style="position:relative; width:100%;">
-        <input type="text" id="chatbotQuickInput" placeholder="Envía un mensaje a SLC BOT..."
-          style="width:100%; padding:10px 40px 10px 12px; border:1px solid var(--border-color); border-radius:6px; background:var(--bg-primary); color:var(--text-main); font-size:13px; outline:none;"
-          autocomplete="off" />
-        <button id="btnDMtoBot"
-          style="position:absolute; right:6px; top:50%; transform:translateY(-50%); background:none; border:none; cursor:pointer; color:var(--slack-primary); display:flex; align-items:center; justify-content:center; padding:4px;">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
-            <path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z" />
-          </svg>
-        </button>
-      </div>
+    <div class="chatbot-input-container">
+      <input type="text" id="chatbotQuickInput" placeholder="Envía un mensaje a SLC BOT" autocomplete="off" />
+      <button id="btnDMtoBot" class="chatbot-send-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="22" y1="2" x2="11" y2="13"></line>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+        </svg>
+      </button>
     </div>
-    <a href="#" class="chatbot-link" id="btnNotifBot">Ir a notificaciones de SLC BOT</a>
   </div>
 </aside>

@@ -58,6 +58,7 @@ function parseMarkdown(str = '') {
     .replace(/\*([^\*]+)\*/g, '<strong>$1</strong>')
     .replace(/_([^_]+)_/g, '<em>$1</em>')
     .replace(/\`\`\`([\s\S]*?)\`\`\`/g, '<pre style="background:var(--bg-secondary); padding:8px; border-radius:4px; font-family:monospace; margin:4px 0;">$1</pre>')
+    .replace(/@(\S+)/g, '<span class="mention-highlight">@$1</span>')
     .replace(/\n/g, '<br>');
 }
 function formatHour(iso) {

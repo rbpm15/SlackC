@@ -121,56 +121,84 @@
 </div>
 
 <!-- ═══════════════════════════════════════════════════════════
-   MODAL ADMIN DASHBOARD
+   MODAL ADMIN DASHBOARD (SUPERADMIN)
 ═══════════════════════════════════════════════════════════ -->
-<div class="name-modal-overlay" id="adminDashboardModal" style="display: none;">
-  <div class="name-modal-box anim-fade-up" style="max-width: 800px; width: 90%;">
-    <div style="display: flex; justify-content: space-between; align-items: center;">
-      <h2 class="name-modal-title">Configuración - Panel de Usuarios</h2>
-      <button class="close-btn" id="adminDashboardClose"
-        style="background: none; border: none; font-size: 24px; color: var(--text-light); cursor: pointer;">&times;</button>
-    </div>
+<div class="superadmin-overlay" id="adminDashboardModal" style="display: none;">
+  <div class="superadmin-box anim-fade-up">
+    <!-- Glowing decorative elements -->
+    <div class="sa-glow sa-glow-1"></div>
+    <div class="sa-glow sa-glow-2"></div>
 
-    <div style="margin-top: 10px; margin-bottom: 20px;">
-      <button id="adminTabUsers" style="padding: 8px 16px; border: none; background: var(--slack-primary); color: white; border-radius: 4px; cursor: pointer; font-weight: 500;">Usuarios</button>
-      <button id="adminTabMessages" style="padding: 8px 16px; border: 1px solid var(--border-color); background: white; color: var(--text-main); border-radius: 4px; cursor: pointer; margin-left: 8px; font-weight: 500;">Mensajes</button>
-    </div>
-
-    <div id="adminPanelUsers" style="overflow-x: auto;">
-      <table style="width: 100%; border-collapse: collapse; text-align: left; color: var(--slack-text);">
-        <thead>
-          <tr style="border-bottom: 2px solid rgba(0,0,0,0.1);">
-            <th style="padding: 10px;">Usuario</th>
-            <th style="padding: 10px;">Dispositivo (User-Agent)</th>
-            <th style="padding: 10px;">Última Conexión</th>
-            <th style="padding: 10px;">Estado</th>
-            <th style="padding: 10px;">Acción</th>
-          </tr>
-        </thead>
-        <tbody id="adminUsersTableBody">
-          <!-- Cargado por JS -->
-        </tbody>
-      </table>
-    </div>
-
-    <div id="adminPanelMessages" style="overflow-x: auto; display: none;">
-      <div style="margin-bottom: 10px; display: flex; gap: 10px;">
-        <input type="text" id="adminMessagesSearch" placeholder="Buscar texto de mensaje..." style="padding: 6px; border: 1px solid var(--border-color); border-radius: 4px; width: 100%; max-width: 300px;">
-        <button id="adminMessagesRefresh" style="padding: 6px 12px; background: var(--slack-blue); color: white; border: none; border-radius: 4px; cursor: pointer;">Buscar</button>
+    <div class="sa-header">
+      <div class="sa-title-container">
+        <div class="sa-icon-shield">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+        </div>
+        <div>
+          <h2 class="sa-title">Centro de Comando <span>Superadmin</span></h2>
+          <p class="sa-subtitle">Control total del sistema y usuarios</p>
+        </div>
       </div>
-      <table style="width: 100%; border-collapse: collapse; text-align: left; color: var(--slack-text);">
-        <thead>
-          <tr style="border-bottom: 2px solid rgba(0,0,0,0.1);">
-            <th style="padding: 10px; width: 15%;">Autor</th>
-            <th style="padding: 10px; width: 55%;">Mensaje</th>
-            <th style="padding: 10px; width: 15%;">Fecha</th>
-            <th style="padding: 10px; width: 15%;">Acción</th>
-          </tr>
-        </thead>
-        <tbody id="adminMessagesTableBody">
-          <!-- Cargado por JS -->
-        </tbody>
-      </table>
+      <button class="sa-close-btn" id="adminDashboardClose">&times;</button>
+    </div>
+
+    <div class="sa-tabs">
+      <button id="adminTabUsers" class="sa-tab active">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        Directorio de Usuarios
+      </button>
+      <button id="adminTabMessages" class="sa-tab">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        Auditoría de Mensajes
+      </button>
+    </div>
+
+    <div class="sa-content">
+      <!-- Users Panel -->
+      <div id="adminPanelUsers" class="sa-panel active">
+        <div class="sa-table-wrapper">
+          <table class="sa-table">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Dispositivo (User-Agent)</th>
+                <th>Última Conexión</th>
+                <th>Estado</th>
+                <th>Acción</th>
+              </tr>
+            </thead>
+            <tbody id="adminUsersTableBody">
+              <!-- Cargado por JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Messages Panel -->
+      <div id="adminPanelMessages" class="sa-panel" style="display: none;">
+        <div class="sa-toolbar">
+          <div class="sa-search-box">
+            <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16"><path fill-rule="evenodd" d="M9 3.5a5.5 5.5 0 100 11 5.5 5.5 0 000-11zM2 9a7 7 0 1112.452 4.391l3.328 3.329a.75.75 0 11-1.06 1.06l-3.329-3.328A7 7 0 012 9z" /></svg>
+            <input type="text" id="adminMessagesSearch" placeholder="Buscar en el registro de mensajes...">
+          </div>
+          <button id="adminMessagesRefresh" class="sa-btn-primary">Filtrar</button>
+        </div>
+        <div class="sa-table-wrapper">
+          <table class="sa-table">
+            <thead>
+              <tr>
+                <th style="width: 15%;">Autor</th>
+                <th style="width: 55%;">Mensaje</th>
+                <th style="width: 15%;">Fecha</th>
+                <th style="width: 15%;">Acción</th>
+              </tr>
+            </thead>
+            <tbody id="adminMessagesTableBody">
+              <!-- Cargado por JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </div>

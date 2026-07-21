@@ -27,6 +27,16 @@ const EventSchema = new mongoose.Schema(
       required: [true, 'La hora del evento es obligatoria.'],
       trim: true,
     },
+    // Fecha real del evento para filtrar expirados (fin del día)
+    fechaEvento: {
+      type: Date,
+      default: null,
+    },
+    // Para eventos con fecha vaga, se pone una fecha de expiración
+    fechaExpiracion: {
+      type: Date,
+      default: null,
+    },
     // Referencia al mensaje que originó este evento (trazabilidad)
     mensajeOrigen: {
       type: mongoose.Schema.Types.ObjectId,
@@ -35,6 +45,8 @@ const EventSchema = new mongoose.Schema(
     },
     // Quién lo mencionó
     autor: { type: String, trim: true, default: '' },
+    // Canal de origen
+    channelId: { type: String, default: '' },
     // 'local' | 'n8n'
     fuente: { type: String, default: 'local' },
 

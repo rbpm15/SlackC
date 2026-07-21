@@ -84,26 +84,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // --- Tab Switching ---
   adminTabUsers?.addEventListener('click', () => {
-    adminPanelUsers.style.display = 'block';
+    adminPanelUsers.style.display = 'flex';
     adminPanelMessages.style.display = 'none';
-    adminTabUsers.style.background = 'var(--slack-primary)';
-    adminTabUsers.style.color = 'white';
-    adminTabUsers.style.border = 'none';
-    adminTabMessages.style.background = 'white';
-    adminTabMessages.style.color = 'var(--text-main)';
-    adminTabMessages.style.border = '1px solid var(--border-color)';
+    adminTabUsers.classList.add('active');
+    adminTabMessages.classList.remove('active');
     fetchAndRenderUsers();
   });
 
   adminTabMessages?.addEventListener('click', () => {
     adminPanelUsers.style.display = 'none';
-    adminPanelMessages.style.display = 'block';
-    adminTabMessages.style.background = 'var(--slack-primary)';
-    adminTabMessages.style.color = 'white';
-    adminTabMessages.style.border = 'none';
-    adminTabUsers.style.background = 'white';
-    adminTabUsers.style.color = 'var(--text-main)';
-    adminTabUsers.style.border = '1px solid var(--border-color)';
+    adminPanelMessages.style.display = 'flex';
+    adminTabMessages.classList.add('active');
+    adminTabUsers.classList.remove('active');
     fetchAndRenderMessages();
   });
 
@@ -146,24 +138,24 @@ document.addEventListener('DOMContentLoaded', () => {
     
     users.forEach(user => {
       const tr = document.createElement('tr');
-      tr.style.borderBottom = '1px solid rgba(0,0,0,0.05)';
       
       const lastConn = user.lastConnection ? new Date(user.lastConnection).toLocaleString('es-MX') : 'N/A';
       const isOnline = window.ChatModule && typeof window.ChatModule.getCurrentChannelId === 'function' ? window._onlineUsers?.has(user.username) : false;
+      
       const statusBadge = user.isDisabled 
-        ? `<span style="background:var(--slack-red); color:white; padding:2px 8px; border-radius:12px; font-size:12px;">Deshabilitado</span>`
-        : `<span style="background:var(--slack-green); color:white; padding:2px 8px; border-radius:12px; font-size:12px;">Activo</span>`;
+        ? `<span class="sa-status disabled">Deshabilitado</span>`
+        : `<span class="sa-status active">Activo</span>`;
         
       const toggleAction = user.isDisabled ? 'Habilitar' : 'Deshabilitar';
-      const actionColor = user.isDisabled ? 'var(--slack-blue)' : 'var(--slack-red)';
+      const btnClass = user.isDisabled ? 'sa-action-btn' : 'sa-action-btn danger';
       
       tr.innerHTML = `
-        <td style="padding: 10px; font-weight: 500;">${user.username}</td>
-        <td style="padding: 10px; font-size: 12px; color: var(--text-light); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${user.device}">${user.device || 'Desconocido'}</td>
-        <td style="padding: 10px; font-size: 13px;">${lastConn}</td>
-        <td style="padding: 10px;">${statusBadge}</td>
-        <td style="padding: 10px;">
-          <button class="toggle-user-btn" data-username="${user.username}" style="background: ${actionColor}; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+        <td><strong>${user.username}</strong></td>
+        <td style="max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${user.device}">${user.device || 'Desconocido'}</td>
+        <td>${lastConn}</td>
+        <td>${statusBadge}</td>
+        <td>
+          <button class="${btnClass} toggle-user-btn" data-username="${user.username}">
             ${toggleAction}
           </button>
         </td>
@@ -229,16 +221,14 @@ document.addEventListener('DOMContentLoaded', () => {
     
     messages.forEach(msg => {
       const tr = document.createElement('tr');
-      tr.style.borderBottom = '1px solid rgba(0,0,0,0.05)';
-      
       const dateStr = new Date(msg.createdAt).toLocaleString('es-MX', { dateStyle: 'short', timeStyle: 'short' });
       
       tr.innerHTML = `
-        <td style="padding: 10px; font-weight: 500; font-size: 13px;">${msg.autor}</td>
-        <td style="padding: 10px; font-size: 13px; word-break: break-word;">${msg.texto}</td>
-        <td style="padding: 10px; font-size: 12px; color: var(--text-light);">${dateStr}</td>
-        <td style="padding: 10px;">
-          <button class="delete-msg-btn" data-id="${msg._id}" style="background: var(--slack-red); color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 12px;">
+        <td><strong>${msg.autor}</strong></td>
+        <td style="word-break: break-word;">${msg.texto}</td>
+        <td>${dateStr}</td>
+        <td>
+          <button class="sa-action-btn danger delete-msg-btn" data-id="${msg._id}">
             Eliminar
           </button>
         </td>
@@ -248,8 +238,8 @@ document.addEventListener('DOMContentLoaded', () => {
     
     // Listeners para eliminar mensajes
     document.querySelectorAll('.delete-msg-btn').forEach(btn => {
-      btn.addEventListener('click', async (e) => {
-        const id = e.target.dataset.id;
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
         if (confirm('¿Estás seguro de que quieres eliminar este mensaje permanentemente?')) {
           await deleteMessage(id);
         }

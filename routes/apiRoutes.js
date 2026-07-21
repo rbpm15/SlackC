@@ -238,10 +238,20 @@ router.get('/search', async (req, res) => {
 //  EVENTOS / AGENDA
 // ══════════════════════════════════════════════════════════════
 
-// GET /api/events
+// GET /api/events (filtra eventos cuya fecha ya pasó)
 router.get('/events', async (req, res) => {
   try {
-    const eventos = await Event.find()
+    const ahora = new Date();
+    const eventos = await Event.find({
+      $or: [
+        // Eventos con fecha exacta que aún no han pasado
+        { fechaEvento: { $gte: ahora } },
+        // Eventos vagos con fecha de expiración que aún no ha pasado
+        { fechaEvento: null, fechaExpiracion: { $gte: ahora } },
+        // Eventos sin ninguna fecha (legacy / sin calcular) — mostrar siempre
+        { fechaEvento: null, fechaExpiracion: null },
+      ]
+    })
       .sort({ createdAt: -1 })
       .limit(50)
       .lean();
@@ -270,13 +280,23 @@ router.post('/events', async (req, res) => {
       }
       await evento.save();
     } else {
+      // Calcular fechaEvento para eventos manuales
+      let fechaEvento = null;
+      if (diaNum) {
+        const hoy = new Date();
+        fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth(), diaNum, 23, 59, 59);
+        if (fechaEvento < hoy) {
+          fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth() + 1, diaNum, 23, 59, 59);
+        }
+      }
       evento = await Event.create({
         titulo: finalTitulo,
         dia: dia,
         diaNum: diaNum,
         hora: hora,
         autor: autor || 'Usuario',
-        fuente: fuente || 'manual'
+        fuente: fuente || 'manual',
+        fechaEvento,
       });
     }
     
@@ -305,11 +325,33 @@ router.delete('/events/:id', async (req, res) => {
 // POST /api/bot/chat (Chatbot Panel direct interaction)
 router.post('/bot/chat', async (req, res) => {
   try {
-    const { texto } = req.body;
+    const { texto, channelId } = req.body;
     if (!texto) return res.status(400).json({ ok: false, error: 'Texto requerido.' });
     
-    const { chatConBot } = require('../services/agendaAI');
-    const respuesta = await chatConBot(texto);
+    const { chatConBot, resumirConversacion } = require('../services/agendaAI');
+
+    // Detectar si pide resumen
+    const esResumen = /\b(resumen|resum[eé]|resumir|qu[eé]\s+se\s+habl[oó]|qu[eé]\s+pas[oó]|lo\s+importante|puntos\s+clave)\b/i.test(texto.toLowerCase());
+
+    let respuesta;
+    if (esResumen) {
+      const inicioHoy = new Date();
+      inicioHoy.setHours(0, 0, 0, 0);
+      const msgs = await Message.find({
+        createdAt: { $gte: inicioHoy },
+        tipo: 'usuario',
+      }).sort({ createdAt: 1 }).limit(200).lean();
+      respuesta = await resumirConversacion(msgs);
+    } else {
+      // Obtener contexto de mensajes recientes
+      let mensajesRecientes = [];
+      if (channelId) {
+        mensajesRecientes = await Message.find({ channelId })
+          .sort({ createdAt: -1 }).limit(15).lean();
+        mensajesRecientes = mensajesRecientes.reverse().filter(m => m.autor !== 'SLC BOT');
+      }
+      respuesta = await chatConBot(texto, { mensajesRecientes });
+    }
     
     res.json({ ok: true, respuesta });
   } catch (err) {

@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acceso Seguro - SlacIA</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-primary: #0F172A;
+      --bg-secondary: #1E293B;
+      --text-primary: #F8FAFC;
+      --text-secondary: #94A3B8;
+      --accent: #3B82F6;
+      --accent-hover: #2563EB;
+      --danger: #EF4444;
+    }
+    
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: var(--bg-primary);
+      color: var(--text-primary);
+      display: flex;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Left Side: Image */
+    .login-image-side {
+      flex: 1;
+      display: none;
+      background-image: url('/img/Campa1.png');
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      position: relative;
+    }
+
+    @media (min-width: 768px) {
+      .login-image-side {
+        display: block;
+      }
+    }
+
+    .login-image-overlay {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(15, 23, 42, 0.4) 0%, rgba(15, 23, 42, 0.8) 100%);
+    }
+
+    /* Right Side: Form */
+    .login-form-side {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 2rem;
+      background-color: var(--bg-primary);
+    }
+
+    .login-container {
+      width: 100%;
+      max-width: 400px;
+      background: var(--bg-secondary);
+      padding: 2.5rem;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .login-header {
+      text-align: center;
+    }
+
+    .login-header h1 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .login-header p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.5;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .form-group label {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-secondary);
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: rgba(15, 23, 42, 0.6);
+      color: var(--text-primary);
+      font-size: 1rem;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+    .form-group input:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+    }
+
+    .submit-btn {
+      width: 100%;
+      padding: 0.75rem;
+      border: none;
+      border-radius: 8px;
+      background-color: var(--accent);
+      color: #fff;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin-top: 0.5rem;
+    }
+
+    .submit-btn:hover {
+      background-color: var(--accent-hover);
+    }
+
+    .error-msg {
+      background: rgba(239, 68, 68, 0.1);
+      color: var(--danger);
+      padding: 0.75rem;
+      border-radius: 8px;
+      border: 1px solid rgba(239, 68, 68, 0.3);
+      font-size: 0.875rem;
+      text-align: center;
+      margin-bottom: -0.5rem;
+    }
+
+    .contact-info {
+      text-align: center;
+      margin-top: 2rem;
+      color: var(--text-secondary);
+      font-size: 0.85rem;
+    }
+    
+    .contact-info a {
+      color: var(--accent);
+      text-decoration: none;
+    }
+    
+    .contact-info a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Left Side: Image -->
+  <div class="login-image-side">
+    <div class="login-image-overlay"></div>
+  </div>
+
+  <!-- Right Side: Form -->
+  <div class="login-form-side">
+    <div class="login-container">
+      <div class="login-header">
+        <h1>SlacIA</h1>
+        <p>Sistema avanzado de gestión y productividad con IA. Por favor, ingresa la contraseña para continuar.</p>
+      </div>
+
+      <% if (error) { %>
+        <div class="error-msg"><%= error %></div>
+      <% } %>
+
+      <form action="/login" method="POST">
+        <div class="form-group">
+          <label for="password">Contraseña de Acceso</label>
+          <input type="password" id="password" name="password" placeholder="Ingresa la contraseña" required autofocus />
+        </div>
+        
+        <button type="submit" class="submit-btn">Acceder al Sistema</button>
+      </form>
+    </div>
+
+    <!-- Contact Info below the box -->
+    <div class="contact-info">
+      Desarrollado por <strong>Roberto Pantaleon</strong><br>
+      Contacto: <a href="mailto:rbpm15@gmail.com">rbpm15@gmail.com</a>
+    </div>
+  </div>
+
+</body>
+</html>

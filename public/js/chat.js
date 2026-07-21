@@ -28,6 +28,7 @@ function colorDeAutor(autor) {
    ════════════════════════════════════════════════════════════════ */
 let _lastAutor      = null;
 let _lastTime       = 0;
+let _lastDateStr    = null;
 const AGRUP_MS      = 5 * 60 * 1000;
 
 let currentChannelId   = null;
@@ -67,6 +68,16 @@ function formatHour(iso) {
 function iniciales(nombre = '') {
   return nombre.split(' ').slice(0, 2).map(p => p[0] || '').join('').toUpperCase() || '?';
 }
+function formatDateDivider(dateObj) {
+  const today = new Date();
+  const msgDate = new Date(dateObj);
+  today.setHours(0, 0, 0, 0);
+  msgDate.setHours(0, 0, 0, 0);
+  const diffDays = Math.round((today.getTime() - msgDate.getTime()) / (1000 * 3600 * 24));
+  if (diffDays === 0) return 'Hoy';
+  if (diffDays === 1) return 'Ayer';
+  return msgDate.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
+}
 
 /* ════════════════════════════════════════════════════════════════
    RENDERIZAR MENSAJE
@@ -75,7 +86,25 @@ function renderizarMensaje(msg, animado = true) {
   const domId = `msg-${msg.id}`;
   if (document.getElementById(domId)) return;
 
-  const ts      = new Date(msg.createdAt).getTime();
+  const msgDateObj = new Date(msg.createdAt);
+  const ts = msgDateObj.getTime();
+  const dateStr = msgDateObj.toDateString();
+
+  if (dateStr !== _lastDateStr) {
+    const dividerText = formatDateDivider(msgDateObj);
+    const divider = document.createElement('div');
+    divider.className = 'day-divider';
+    if (animado) divider.classList.add('anim-fade-up');
+    divider.innerHTML = `
+      <span class="day-divider-line"></span>
+      <span class="day-divider-text">${dividerText}</span>
+      <span class="day-divider-line"></span>
+    `;
+    feedEl.appendChild(divider);
+    _lastDateStr = dateStr;
+    _lastAutor = null; // force header for new day
+  }
+
   const grouped = msg.autor === _lastAutor && (ts - _lastTime) < AGRUP_MS;
   _lastAutor    = msg.autor;
   _lastTime     = ts;
@@ -253,11 +282,18 @@ async function seleccionarCanal(id, nombre, descripcion = '', tipo = 'channel') 
   document.getElementById('chatTopic').textContent       = descripcion;
 
   // Actualizar Welcome Banner
-  const wTitle = document.getElementById('welcomeTitle');
+  const wHeading = document.getElementById('welcomeHeading');
   const wIcon  = document.getElementById('welcomeIcon');
   const wDesc  = document.getElementById('welcomeDesc');
-  if (wTitle) wTitle.textContent = `${prefix}${nombre}`;
+  
   if (wIcon)  wIcon.textContent  = prefix;
+  if (wHeading) {
+    if (tipo === 'dm') {
+      wHeading.innerHTML = `Chat directo con <strong>${escapeHtml(nombre)}</strong>`;
+    } else {
+      wHeading.innerHTML = `Bienvenido a <strong>${prefix}${escapeHtml(nombre)}</strong>`;
+    }
+  }
   if (wDesc) {
     if (tipo === 'dm') {
       wDesc.innerHTML = `Este es el comienzo de tus mensajes directos con <strong>${escapeHtml(nombre)}</strong>.`;
@@ -267,8 +303,9 @@ async function seleccionarCanal(id, nombre, descripcion = '', tipo = 'channel') 
   }
 
   // Limpiar feed
-  feedEl.querySelectorAll('.slack-message, .system-message').forEach(n => n.remove());
+  feedEl.querySelectorAll('.slack-message, .system-message, .day-divider').forEach(n => n.remove());
   _lastAutor = null;
+  _lastDateStr = null;
 
   // Notificar a app.js que cambió el canal (vía evento custom)
   document.dispatchEvent(new CustomEvent('canal_cambiado', { detail: { channelId: id } }));

@@ -534,12 +534,12 @@ socket.on('mensaje_no_leido', (data) => {
     if (data.isDirectMessage) {
       enviarNotificacionDesktop(`Mensaje directo de ${data.autor}`, data.texto || 'Tienes un nuevo mensaje');
     }
-    // Si es canal público y no estamos mirando la app, notificar
-    else if (document.hidden) {
+    // Si es canal público: siempre notificar si es que no estamos en ese canal
+    else {
       if (data.texto && data.texto.includes(`@${myName}`)) {
         enviarNotificacionDesktop(`Mención de ${data.autor}`, data.texto);
       } else {
-        enviarNotificacionDesktop(`Nueva actividad`, `Hay mensajes nuevos de ${data.autor || 'alguien'}.`);
+        enviarNotificacionDesktop(`Mensaje nuevo en canal`, `De ${data.autor || 'alguien'}: ${data.texto || ''}`);
       }
     }
   }

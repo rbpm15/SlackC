@@ -358,6 +358,14 @@ async function seleccionarCanal(id, nombre, descripcion = '', tipo = 'channel') 
   const badge = document.getElementById(`badge-${id}`);
   if (badge) badge.style.display = 'none';
 
+  if (tipo === 'dm' && nombre) {
+    const userBadge = document.getElementById(`badge-user-${nombre}`);
+    if (userBadge) {
+      userBadge.style.display = 'none';
+      userBadge.textContent = '0';
+    }
+  }
+
   // Actualizar cabecera
   const prefix = tipo === 'dm' ? '@' : '#';
   document.getElementById('chatChannelName').textContent = nombre;

@@ -667,7 +667,7 @@ async function cargarInicial() {
     }
 
     const [rChannels, rEvs] = await Promise.allSettled([
-      fetch('/api/channels').then(r => r.json()),
+      fetch(`/api/channels?user=${encodeURIComponent(myName)}`).then(r => r.json()),
       fetch('/api/events').then(r => r.json()),
     ]);
 
@@ -741,7 +741,9 @@ document.addEventListener('DOMContentLoaded', () => {
     btnToggleRightPanel.addEventListener('click', (e) => {
       e.stopPropagation();
       appShell.classList.remove('sidebar-open');
-      appShell.classList.toggle('right-panel-open');
+      if (window.innerWidth <= 992) {
+        appShell.classList.toggle('right-panel-open');
+      }
     });
   }
 

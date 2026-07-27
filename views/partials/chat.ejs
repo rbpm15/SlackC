@@ -15,7 +15,7 @@
       <span class="chat-topic" id="chatTopic">Canal de comunicación general del equipo</span>
     </div>
     <div class="chat-header-right">
-      <span class="member-count" id="memberCount"></span>
+      <span class="member-count" id="memberCount" style="cursor: pointer; padding: 2px 6px; border-radius: 4px;" title="Ver Miembros"></span>
       <span id="connectionStatus" class="connection-status">
         <span class="conn-dot online"></span>En línea
       </span>
@@ -162,3 +162,26 @@
   </div>
 
 </main>
+
+<!-- Members Modal -->
+<div id="membersModal" class="sidebar-backdrop" style="z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); opacity: 1;">
+  <div class="name-modal-box" style="width: 100%; max-width: 400px; background: var(--bg-primary); border-radius: 8px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
+    <h3 style="margin-bottom: 12px; font-size: 18px;">Miembros del Canal</h3>
+    
+    <div id="membersList" style="max-height: 200px; overflow-y: auto; margin-bottom: 16px;">
+      <!-- JavaScript will inject members here -->
+    </div>
+
+    <div id="addMemberSection" style="display: none; border-top: 1px solid var(--border-color); padding-top: 16px; margin-bottom: 16px;">
+      <h4 style="font-size: 14px; margin-bottom: 8px;">Añadir Miembro</h4>
+      <div style="display: flex; gap: 8px;">
+        <input type="text" id="addMemberInput" placeholder="Nombre de usuario" class="name-input" style="flex: 1;" />
+        <button id="addMemberBtn" style="background: var(--slack-purple-mid); color: white; border: none; padding: 0 12px; border-radius: 4px; cursor: pointer;">Añadir</button>
+      </div>
+    </div>
+
+    <div style="text-align: right;">
+      <button id="closeMembersModal" style="background: transparent; border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 4px; color: var(--text-main); font-weight: bold; cursor: pointer;">Cerrar</button>
+    </div>
+  </div>
+</div>

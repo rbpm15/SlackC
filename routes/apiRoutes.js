@@ -14,7 +14,18 @@ const router = Router();
 // GET /api/channels — lista todos los canales (no DMs)
 router.get('/channels', async (req, res) => {
   try {
-    let canales = await Channel.find({ isDirectMessage: false })
+    const { user } = req.query;
+    let query = { isDirectMessage: false };
+    if (user && user !== 'admin') {
+      // Retornar si es miembro o si es canal abierto a todos (users vacío)
+      query.$or = [
+        { users: user },
+        { users: { $exists: true, $size: 0 } },
+        { users: { $exists: false } }
+      ];
+    }
+    
+    let canales = await Channel.find(query)
       .sort({ createdAt: 1 }).lean();
 
     // Seed: crear canales por defecto si la BD está vacía
@@ -39,12 +50,14 @@ router.get('/channels', async (req, res) => {
 // POST /api/channels — crear nuevo canal
 router.post('/channels', async (req, res) => {
   try {
-    const { name, description } = req.body;
+    const { name, description, owner } = req.body;
     if (!name) return res.status(400).json({ ok: false, error: 'El nombre es obligatorio.' });
 
     const canal = await Channel.create({
       name: name.toLowerCase().replace(/\s+/g, '-').slice(0, 30),
       description: description || '',
+      owner: owner || null,
+      users: owner ? [owner] : [],
     });
 
     res.json({ ok: true, data: canal });
@@ -54,6 +67,56 @@ router.post('/channels', async (req, res) => {
     }
     console.error('[API] POST /channels:', err.message);
     res.status(500).json({ ok: false, error: 'Error creando canal.' });
+  }
+});
+
+// GET /api/channels/:id/members — lista los miembros de un canal
+router.get('/channels/:id/members', async (req, res) => {
+  try {
+    const channel = await Channel.findById(req.params.id).lean();
+    if (!channel) return res.status(404).json({ ok: false, error: 'Canal no encontrado' });
+    res.json({ ok: true, owner: channel.owner || null, users: channel.users || [] });
+  } catch (err) {
+    console.error('[API] GET /channels/members:', err.message);
+    res.status(500).json({ ok: false, error: 'Error al obtener miembros.' });
+  }
+});
+
+// POST /api/channels/:id/members — agregar miembro
+router.post('/channels/:id/members', async (req, res) => {
+  try {
+    const { username } = req.body;
+    if (!username) return res.status(400).json({ ok: false, error: 'Falta username' });
+    
+    const channel = await Channel.findById(req.params.id);
+    if (!channel) return res.status(404).json({ ok: false });
+    
+    if (channel.owner) {
+      if (!channel.users.includes(username)) {
+        channel.users.push(username);
+        await channel.save();
+      }
+    }
+    res.json({ ok: true, data: channel });
+  } catch (err) {
+    res.status(500).json({ ok: false });
+  }
+});
+
+// DELETE /api/channels/:id/members/:username — remover miembro
+router.delete('/channels/:id/members/:username', async (req, res) => {
+  try {
+    const { username } = req.params;
+    const channel = await Channel.findById(req.params.id);
+    if (!channel) return res.status(404).json({ ok: false });
+    
+    if (channel.owner && channel.owner !== username) { // previene que el creador se elimine a sí mismo
+      channel.users = channel.users.filter(u => u !== username);
+      await channel.save();
+    }
+    res.json({ ok: true, data: channel });
+  } catch (err) {
+    res.status(500).json({ ok: false });
   }
 });
 

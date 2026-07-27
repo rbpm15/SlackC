@@ -19,7 +19,10 @@ const ChannelSchema = new mongoose.Schema(
             type: Boolean,
             default: false,
         },
-        users: [{ type: String }], // Array de nombres de usuario para los DMs
+        owner: {
+            type: String,
+        },
+        users: [{ type: String }], // Array de nombres de usuario para los DMs o para los miembros en canales públicos
     },
     { timestamps: true }
 );

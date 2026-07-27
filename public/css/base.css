@@ -146,8 +146,7 @@ input:checked + .n8n-slider:before {
    ═══════════════════════════════════════════════════════════════ */
 
 /* Toggle buttons hidden on desktop */
-.sidebar-toggle-btn,
-.agenda-toggle-btn {
+.sidebar-toggle-btn {
   display: none !important;
 }
 

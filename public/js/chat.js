@@ -553,10 +553,11 @@ document.getElementById('newChannelSubmit')?.addEventListener('click', async () 
   if (!name) return;
 
   try {
+    const myName = localStorage.getItem('slacia_user') || 'Anónimo';
     const r = await fetch('/api/channels', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ name, description: desc }),
+      body:    JSON.stringify({ name, description: desc, owner: myName }),
     });
     const d = await r.json();
     if (!d.ok) { alert(d.error); return; }
@@ -625,3 +626,92 @@ window.ChatModule = {
   },
   actualizarMensaje,
 };
+
+// Lógica de gestión de miembros
+document.getElementById('memberCount')?.addEventListener('click', async () => {
+  if (typeof ChatModule === 'undefined') return;
+  if (ChatModule.getCurrentChannelType() === 'dm') return; // En DMs no gestionamos miembros así
+
+  const channelId = ChatModule.getCurrentChannelId();
+  if (!channelId) return;
+
+  const myName = localStorage.getItem('slacia_user') || 'Anónimo';
+
+  try {
+    const res = await fetch(`/api/channels/${channelId}/members`);
+    const data = await res.json();
+    if (!data.ok) return alert('Error al cargar miembros');
+
+    const isOwner = data.owner === myName;
+    const list = document.getElementById('membersList');
+    list.innerHTML = '';
+    
+    if (data.users && data.users.length > 0) {
+      data.users.forEach(u => {
+        const div = document.createElement('div');
+        div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border-color); color: var(--text-main); font-size: 14px;';
+        
+        const nameSpan = document.createElement('span');
+        nameSpan.textContent = u;
+        if (u === data.owner) {
+          nameSpan.innerHTML += ' <strong style="color: var(--text-muted); font-size: 11px;">(Creador)</strong>';
+        }
+        div.appendChild(nameSpan);
+
+        if (isOwner && u !== data.owner) {
+          const btn = document.createElement('button');
+          btn.textContent = 'Expulsar';
+          btn.style.cssText = 'background: rgba(224,30,90,0.1); color: #E01E5A; border: 1px solid #E01E5A; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;';
+          btn.onclick = async () => {
+            const rmRes = await fetch(`/api/channels/${channelId}/members/${encodeURIComponent(u)}`, { method: 'DELETE' });
+            if (rmRes.ok) div.remove();
+          };
+          div.appendChild(btn);
+        }
+        list.appendChild(div);
+      });
+    } else {
+      list.innerHTML = '<p style="color: var(--text-muted); font-size: 13px;">Canal accesible por todos o sin dueños.</p>';
+    }
+
+    const addSection = document.getElementById('addMemberSection');
+    if (isOwner) {
+      addSection.style.display = 'block';
+      const addBtn = document.getElementById('addMemberBtn');
+      
+      // Limpiar listeners antiguos usando cloneNode
+      const newBtn = addBtn.cloneNode(true);
+      addBtn.parentNode.replaceChild(newBtn, addBtn);
+      
+      newBtn.addEventListener('click', async () => {
+        const input = document.getElementById('addMemberInput');
+        const username = input.value.trim();
+        if (!username) return;
+        
+        const r = await fetch(`/api/channels/${channelId}/members`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username })
+        });
+        if (r.ok) {
+          input.value = '';
+          document.getElementById('membersModal').style.display = 'none';
+          document.getElementById('memberCount').click(); // Reload
+        } else {
+          alert('Error al añadir miembro');
+        }
+      });
+    } else {
+      addSection.style.display = 'none';
+    }
+
+    document.getElementById('membersModal').style.display = 'flex';
+  } catch (err) {
+    console.error(err);
+    alert('No se pudo conectar a la API.');
+  }
+});
+
+document.getElementById('closeMembersModal')?.addEventListener('click', () => {
+  document.getElementById('membersModal').style.display = 'none';
+});

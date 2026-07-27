@@ -29,13 +29,14 @@ const agendaDateEl  = document.getElementById('agendaDate');
 })();
 
 /* ════════════════════════════════════════════════════════════════
-   MINI CALENDARIO (estado vacío profesional)
+   MINI CALENDARIO (estado vacío profesional y navegación)
 ════════════════════════════════════════════════════════════════ */
-function crearMiniCalendario() {
+function crearMiniCalendarioHtml() {
   const hoy     = new Date();
-  const anio    = hoy.getFullYear();
-  const mes     = hoy.getMonth();
+  const anio    = AgendaModule.currentYear !== undefined ? AgendaModule.currentYear : hoy.getFullYear();
+  const mes     = AgendaModule.currentMonth !== undefined ? AgendaModule.currentMonth : hoy.getMonth();
   const diaHoy  = hoy.getDate();
+  const esMesActual = (anio === hoy.getFullYear() && mes === hoy.getMonth());
 
   const DIAS_CORTO = ['D','L','M','X','J','V','S'];
   const MESES_ES   = ['Enero','Febrero','Marzo','Abril','Mayo','Junio',
@@ -51,33 +52,55 @@ function crearMiniCalendario() {
     celdas += `<span class="cal-cell empty"></span>`;
   }
   for (let d = 1; d <= totalDias; d++) {
-    const esHoy = d === diaHoy;
+    const esHoy = esMesActual && d === diaHoy;
     celdas += `<span class="cal-cell${esHoy ? ' today' : ''}" id="cal-day-${d}" onclick="window.AgendaModule.filtrarPorDia(${d})">${d}</span>`;
   }
 
   return `
-    <div class="mini-calendar">
-      <div class="mini-cal-header">
+    <div class="mini-calendar" id="miniCalendarWrapper">
+      <div class="mini-cal-header" style="display: flex; justify-content: space-between; align-items: center;">
+        <button onclick="AgendaModule.cambiarMes(-1)" style="flex-shrink:0; width: 24px; height:24px; background: none; border: none; cursor: pointer; color: var(--slack-primary); font-size: 16px; border-radius: 4px;" onmouseover="this.style.background='rgba(0,0,0,0.05)';" onmouseout="this.style.background='none';">◀</button>
         <span>${MESES_ES[mes]} ${anio}</span>
+        <button onclick="AgendaModule.cambiarMes(1)" style="flex-shrink:0; width: 24px; height:24px; background: none; border: none; cursor: pointer; color: var(--slack-primary); font-size: 16px; border-radius: 4px;" onmouseover="this.style.background='rgba(0,0,0,0.05)';" onmouseout="this.style.background='none';">▶</button>
       </div>
       <div class="mini-cal-days">
         ${DIAS_CORTO.map(d => `<span class="cal-day-label">${d}</span>`).join('')}
       </div>
       <div class="mini-cal-grid">${celdas}</div>
     </div>
-    <div style="margin: 16px 20px 8px; font-size: 14px; font-weight: 700; color: var(--text-main); border-bottom: 1px solid var(--border-color); padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
-      <span>Próximos eventos</span>
-      <button onclick="AgendaModule.abrirModalRegistro()" title="Registrar nuevo evento" style="background:none; border:none; color:var(--slack-primary); cursor:pointer; font-size:20px; font-weight:bold; display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:4px; line-height:1; transition:background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.05)';" onmouseout="this.style.background='none';">+</button>
-    </div>
-    <div id="emptyEventsContainer" style="display: none; text-align: center; padding: 20px 10px;">
-      <p id="emptyEventsText" class="mini-cal-empty-text" style="display:block; margin-bottom: 12px;">Sin eventos registrados</p>
-      <button id="btnRegistrarAhora" class="name-modal-btn" style="display: none; margin: 0 auto; padding: 6px 12px; font-size: 13px; width: auto;" onclick="AgendaModule.abrirModalRegistro()">Registrar ahora</button>
+    <div id="miniCalendarTools">
+      <div style="margin: 16px 20px 8px; font-size: 14px; font-weight: 700; color: var(--text-main); border-bottom: 1px solid var(--border-color); padding-bottom: 4px; display: flex; justify-content: space-between; align-items: center;">
+        <span>Próximos eventos</span>
+        <button onclick="AgendaModule.abrirModalRegistro()" title="Registrar nuevo evento" style="background:none; border:none; color:var(--slack-primary); cursor:pointer; font-size:20px; font-weight:bold; display:flex; align-items:center; justify-content:center; width:24px; height:24px; border-radius:4px; line-height:1; transition:background 0.2s;" onmouseover="this.style.background='rgba(0,0,0,0.05)';" onmouseout="this.style.background='none';">+</button>
+      </div>
+      <div id="emptyEventsContainer" style="display: none; text-align: center; padding: 20px 10px;">
+        <p id="emptyEventsText" class="mini-cal-empty-text" style="display:block; margin-bottom: 12px;">Sin eventos registrados</p>
+        <button id="btnRegistrarAhora" class="name-modal-btn" style="display: none; margin: 0 auto; padding: 6px 12px; font-size: 13px; width: auto;" onclick="AgendaModule.abrirModalRegistro()">Registrar ahora</button>
+      </div>
     </div>
   `;
 }
 
 // Insertar calendario al arrancar
-agendaBodyEl.innerHTML = crearMiniCalendario();
+function initCalendarDOM() {
+  const prevCal = document.getElementById('miniCalendarWrapper');
+  const prevTools = document.getElementById('miniCalendarTools');
+  if (prevCal) prevCal.remove();
+  if (prevTools) prevTools.remove();
+
+  // Eliminar estado vacío inicial de EJS para que no rompa el layout
+  const initEmpty = document.getElementById('agendaEmpty');
+  if (initEmpty) initEmpty.remove();
+
+  const wrap = document.createElement('div');
+  wrap.innerHTML = crearMiniCalendarioHtml();
+  // Insertar al inicio para que las tarjetas de eventos queden debajo
+  agendaBodyEl.insertBefore(wrap.querySelector('#miniCalendarTools'), agendaBodyEl.firstChild);
+  agendaBodyEl.insertBefore(wrap.querySelector('#miniCalendarWrapper'), agendaBodyEl.firstChild);
+}
+
+// Insertar calendario al arrancar (solo estructura, luego se sobreescribe el state)
+// Se llama initCalendarDOM después, pues AgendaModule debe instanciarse.
 
 /* ════════════════════════════════════════════════════════════════
    CONTADOR
@@ -88,8 +111,8 @@ function actualizarContador() {
 
   // Si no hay eventos, asegurarse de que el calendario exista y mostrar el texto vacío
   if (total === 0) {
-    if (!agendaBodyEl.querySelector('.mini-calendar')) {
-      agendaBodyEl.innerHTML = crearMiniCalendario();
+    if (!document.getElementById('miniCalendarWrapper')) {
+      initCalendarDOM();
     } else {
       const emptyCont = agendaBodyEl.querySelector('#emptyEventsContainer');
       if (emptyCont) {
@@ -128,6 +151,8 @@ function renderizarEvento(evento, animado = true) {
   let fuenteHtml = '';
   if (evento.fuente === 'n8n') {
     fuenteHtml = `<span class="event-tag src-n8n">⚡ n8n</span>`;
+  } else if (evento.fuente === 'gcal') {
+    fuenteHtml = `<span class="event-tag src-gcal" style="background:#e8f0fe; color:#1967d2; border:1px solid #c2e0ff;">📅 G-Calendar</span>`;
   } else if (evento.fuente === 'manual') {
     fuenteHtml = `<span class="event-tag src-manual" style="background:#fff3cd; color:#856404; border:1px solid #ffeeba;">✍️ Manualmente</span>`;
   } else {
@@ -165,13 +190,15 @@ function renderizarEvento(evento, animado = true) {
   card.id        = evId;
   card.className = 'event-card' + (animado ? ' anim-slide-right' : '');
   card.dataset.diaNum = evento.diaNum || '';
+  card.dataset.mes = evento.mes || '';
+  card.dataset.anio = evento.anio || '';
   card.innerHTML = cardHtml;
 
   agendaBodyEl.appendChild(card);
   actualizarContador();
 
-  // Marcar punto en el calendario si tenemos día numérico
-  if (evento.diaNum) {
+  // Marcar punto en el calendario si tenemos día numérico y corresponde al mes actual en vista
+  if (evento.diaNum && evento.mes === AgendaModule.currentMonth && evento.anio === AgendaModule.currentYear) {
     const cell = document.getElementById(`cal-day-${evento.diaNum}`);
     if (cell && !cell.querySelector('.event-indicator')) {
       cell.innerHTML += `<div class="event-indicator"></div>`;
@@ -227,6 +254,47 @@ async function enviarAN8n(payload) {
    API PÚBLICA
 ════════════════════════════════════════════════════════════════ */
 const AgendaModule = {
+  currentMonth: new Date().getMonth(),
+  currentYear: new Date().getFullYear(),
+  cachedEvents: [],
+
+  cambiarMes(delta) {
+    this.currentMonth += delta;
+    if (this.currentMonth < 0) {
+      this.currentMonth = 11;
+      this.currentYear--;
+    } else if (this.currentMonth > 11) {
+      this.currentMonth = 0;
+      this.currentYear++;
+    }
+    
+    // Obtener los eventos seleccionados si los hubiera y restablecerlos
+    this.selectedDate = null;
+    document.querySelectorAll('.event-card').forEach(c => c.style.display = 'block');
+    
+    initCalendarDOM();
+    
+    // Volver a calcular marcadores de eventos
+    this.recalcularMarcadoresCalendario();
+    actualizarContador();
+  },
+
+  recalcularMarcadoresCalendario() {
+    // Quitar todos los puntos
+    document.querySelectorAll('.event-indicator').forEach(i => i.remove());
+    // Añadir puntos para los eventos que apliquen
+    document.querySelectorAll('.event-card').forEach(c => {
+      const d = parseInt(c.dataset.diaNum);
+      const m = parseInt(c.dataset.mes);
+      const a = parseInt(c.dataset.anio);
+      if (d && m === this.currentMonth && a === this.currentYear) {
+        const cell = document.getElementById(`cal-day-${d}`);
+        if (cell && !cell.querySelector('.event-indicator')) {
+          cell.innerHTML += `<div class="event-indicator"></div>`;
+        }
+      }
+    });
+  },
 
   /** Llamado por app.js cuando el servidor confirma un evento via socket */
   async recibirEventoSocket(ev) {
@@ -235,6 +303,8 @@ const AgendaModule = {
       titulo:    ev.titulo,
       dia:       ev.dia,
       diaNum:    ev.diaNum,
+      mes:       ev.fechaEvento ? new Date(ev.fechaEvento).getMonth() : this.currentMonth,
+      anio:      ev.fechaEvento ? new Date(ev.fechaEvento).getFullYear() : this.currentYear,
       hora:      ev.hora,
       autor:     ev.autor || '',
       fuente:    ev.fuente || 'local',
@@ -247,21 +317,67 @@ const AgendaModule = {
       if (ok) evento.fuente = 'n8n';
     }
 
+    this.cachedEvents.push(evento);
     renderizarEvento(evento, true);
   },
 
   /** Cargar historial de eventos desde la API al iniciar */
   cargarDesdeServidor(eventos = []) {
-    [...eventos].reverse().forEach(ev => renderizarEvento({
-      id:        ev._id || ev.id,
-      titulo:    ev.titulo,
-      dia:       ev.dia,
-      diaNum:    ev.diaNum,
-      hora:      ev.hora,
-      autor:     ev.autor || '',
-      fuente:    ev.fuente || 'local',
-      createdAt: ev.createdAt,
-    }, false));
+    const hoy = new Date();
+    hoy.setHours(0,0,0,0);
+    
+    this.cachedEvents = [];
+    
+    [...eventos].reverse().forEach(ev => {
+      // Determinar la fecha real del evento
+      let fechaReal = ev.fechaEvento ? new Date(ev.fechaEvento) : null;
+      let mesEv = fechaReal ? fechaReal.getMonth() : this.currentMonth;
+      let anioEv = fechaReal ? fechaReal.getFullYear() : this.currentYear;
+      
+      let num = ev.diaNum;
+      if (!num && ev.dia) {
+        const match = ev.dia.match(/(\d+)/);
+        if (match) num = parseInt(match[1]);
+      }
+
+      // Si no hay fechaEvento pero sí diaNum (o lo sacamos del texto), intentar adivinar basados en currentMonth
+      if (!fechaReal && num) {
+        fechaReal = new Date(this.currentYear, this.currentMonth, num, 23, 59, 59);
+        // Sin embargo, si es un evento MUY viejo que no tiene fechaEvento y es del pasado, lo saltamos
+        if (fechaReal < hoy) {
+            return; // Skip ev dates already past
+        }
+      } else if (!fechaReal && !num) {
+        // Evento sin fecha clara (ej. "Hoy", "La otra semana")
+        // Si el texto dice "Hoy" o similar pero ya pasaron días desde que se creó... 
+        // Mejor intentar usar createdAt
+        if (ev.createdAt) {
+           const created = new Date(ev.createdAt);
+           // Si se creó antes de hoy, ya es viejo, no mostrar
+           created.setHours(0,0,0,0);
+           if (created < hoy) return;
+        }
+      }
+
+      // Skip past events entirely for a cleaner UI if they were loaded
+      if (fechaReal && fechaReal < hoy) return;
+
+      const evtFormat = {
+        id:        ev._id || ev.id,
+        titulo:    ev.titulo,
+        dia:       ev.dia,
+        diaNum:    num || ev.diaNum,
+        mes:       mesEv,
+        anio:      anioEv,
+        hora:      ev.hora,
+        autor:     ev.autor || '',
+        fuente:    ev.fuente || 'local',
+        createdAt: ev.createdAt,
+      };
+      
+      this.cachedEvents.push(evtFormat);
+      renderizarEvento(evtFormat, false);
+    });
   },
 
   /** Eliminar tarjeta del DOM y DB */
@@ -333,7 +449,7 @@ const AgendaModule = {
       cell.classList.add('selected-day');
       let visibles = 0;
       cards.forEach(c => {
-        if (c.dataset.diaNum == diaNum) {
+        if (c.dataset.diaNum == diaNum && parseInt(c.dataset.mes) === this.currentMonth && parseInt(c.dataset.anio) === this.currentYear) {
           c.style.display = 'block';
           visibles++;
         } else {
@@ -347,10 +463,9 @@ const AgendaModule = {
           emptyText.textContent = 'No hay eventos registrados en esta fecha';
           if (btnRegistrar) btnRegistrar.style.display = 'inline-block';
           
-          const hoy = new Date();
-          const mes = (hoy.getMonth() + 1).toString().padStart(2, '0');
-          const d = diaNum.toString().padStart(2, '0');
-          AgendaModule.selectedDate = `${hoy.getFullYear()}-${mes}-${d}`;
+          const mesStr = (this.currentMonth + 1).toString().padStart(2, '0');
+          const dStr = diaNum.toString().padStart(2, '0');
+          AgendaModule.selectedDate = `${this.currentYear}-${mesStr}-${dStr}`;
         }
       } else {
         if (emptyCont) emptyCont.style.display = 'none';
@@ -372,10 +487,9 @@ const AgendaModule = {
     if (this.selectedDate) {
       dateInput.value = this.selectedDate;
     } else {
-      const hoy = new Date();
-      const mes = (hoy.getMonth() + 1).toString().padStart(2, '0');
-      const d = hoy.getDate().toString().padStart(2, '0');
-      dateInput.value = `${hoy.getFullYear()}-${mes}-${d}`;
+      const mesStr = (this.currentMonth + 1).toString().padStart(2, '0');
+      const dStr = new Date().getDate().toString().padStart(2, '0'); // might be invalid if month has fewer days, but ok for default
+      dateInput.value = `${this.currentYear}-${mesStr}-${dStr}`;
     }
     
     modal.style.display = 'flex';
@@ -429,6 +543,7 @@ const AgendaModule = {
 };
 
 window.AgendaModule = AgendaModule;
+initCalendarDOM();
 
 /* ════════════════════════════════════════════════════════════════
    HELPER

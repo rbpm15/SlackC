@@ -295,6 +295,41 @@ function renderizarUsuarios(usuarios, myName) {
       <span class="dm-avatar" style="background:${color}">${iniciales(u)}</span>
       <span class="dm-name">${escapeHtml(u)}</span>
       <span class="presence ${isOnline ? 'online' : 'offline'}"></span>
+      <span class="unread-badge" id="badge-user-${escapeHtml(u)}" style="display:none">0</span>
+    `;
+    listEl.appendChild(li);
+  });
+}
+
+/* ════════════════════════════════════════════════════════════════
+   RENDERIZADO DINÁMICO DE CONVERSACIONES DM
+   ════════════════════════════════════════════════════════════════ */
+function renderizarConversacionesDM(dms, myName) {
+  const listEl = document.getElementById('dmList');
+  if (!listEl) return;
+  listEl.innerHTML = '';
+
+  dms.forEach(dm => {
+    const otherUser = dm.users.find(u => u !== myName);
+    if (!otherUser) return;
+
+    const isOnline = _onlineUsers.has(otherUser);
+    const color = colorDeAutor(otherUser);
+    const li = document.createElement('li');
+    li.className = 'dm-item';
+    li.style.cursor = 'pointer';
+    
+    const isCurrentlyActive = currentChannelType === 'dm' && currentChannelId === dm._id;
+    if (isCurrentlyActive) {
+      li.classList.add('active');
+    }
+
+    li.onclick = () => { if (typeof iniciarDM === 'function') iniciarDM(otherUser); };
+    li.innerHTML = `
+      <span class="dm-avatar" style="background:${color}">${iniciales(otherUser)}</span>
+      <span class="dm-name">${escapeHtml(otherUser)}</span>
+      <span class="presence ${isOnline ? 'online' : 'offline'}"></span>
+      <span class="unread-badge" id="badge-${dm._id}" style="display:none">0</span>
     `;
     listEl.appendChild(li);
   });
@@ -372,13 +407,19 @@ async function seleccionarCanal(id, nombre, descripcion = '', tipo = 'channel') 
 /* ════════════════════════════════════════════════════════════════
    NO-LEÍDOS (badge)
    ════════════════════════════════════════════════════════════════ */
-function incrementarNoLeido(channelId) {
+function incrementarNoLeido(channelId, autor, isDM) {
   if (channelId === currentChannelId) return; // ya está visible
   _unreadCounts[channelId] = (_unreadCounts[channelId] || 0) + 1;
   const badge = document.getElementById(`badge-${channelId}`);
   if (badge) {
     badge.textContent    = _unreadCounts[channelId] > 9 ? '9+' : _unreadCounts[channelId];
     badge.style.display  = 'inline-flex';
+  } else if (isDM && autor) {
+    const userBadge = document.getElementById(`badge-user-${autor}`);
+    if (userBadge) {
+      userBadge.textContent = _unreadCounts[channelId] > 9 ? '9+' : _unreadCounts[channelId];
+      userBadge.style.display = 'inline-flex';
+    }
   }
 }
 
@@ -550,6 +591,7 @@ window.ChatModule = {
   renderizarCanales,
   renderizarDMs,
   renderizarUsuarios,
+  renderizarConversacionesDM,
   incrementarNoLeido,
   setOnlineUsers(nombres = []) {
     _onlineUsers = new Set(nombres);

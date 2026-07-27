@@ -49,6 +49,18 @@ const EventSchema = new mongoose.Schema(
     channelId: { type: String, default: '' },
     // 'local' | 'n8n'
     fuente: { type: String, default: 'local' },
+    
+    // ══════════════════════════════════════════════════════════════
+    // NUEVOS CAMPOS PARA NOTIFICACIONES DIFERIDAS (N8N)
+    // ══════════════════════════════════════════════════════════════
+    event_type: { type: String, default: 'internal' },
+    contact_method: { type: String, enum: ['none', 'email', 'telegram', 'whatsapp'], default: 'none' },
+    notification_status: { type: String, enum: ['none', 'pending', 'sent'], default: 'none' },
+    client_email: { type: String, default: '' },
+    client_phone: { type: String, default: '' },
+    client_name: { type: String, default: '' },
+    personalized_message: { type: String, default: '' },
+    gcalEventId: { type: String, default: '' },
 
   },
   {

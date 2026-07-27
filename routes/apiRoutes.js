@@ -241,8 +241,42 @@ router.get('/search', async (req, res) => {
 // GET /api/events (filtra eventos cuya fecha ya pasó)
 router.get('/events', async (req, res) => {
   try {
+    // ----------------------------------------------------
+    // Soporte para consultas n8n (flujo de notificaciones)
+    // ----------------------------------------------------
+    if (req.query.date === 'today' || req.query.date_exact || req.query.notification_status) {
+      let filter = {};
+      
+      if (req.query.notification_status) filter.notification_status = req.query.notification_status;
+      if (req.query.event_type) filter.event_type = req.query.event_type;
+      
+      if (req.query.date === 'today') {
+        const start = new Date(); start.setHours(0,0,0,0);
+        const end = new Date(); end.setHours(23,59,59,999);
+        filter.fechaEvento = { $gte: start, $lte: end };
+      } else if (req.query.date_exact) {
+        // Formato esperado: YYYY-MM-DD
+        const start = new Date(req.query.date_exact); start.setHours(0,0,0,0);
+        const end = new Date(req.query.date_exact); end.setHours(23,59,59,999);
+        filter.fechaEvento = { $gte: start, $lte: end };
+      }
+      
+      const evs = await Event.find(filter).lean();
+      return res.json({ ok: true, data: evs });
+    }
+    // ----------------------------------------------------
+
     const ahora = new Date();
-    const eventos = await Event.find({
+
+    // Eliminar eventos pasados
+    await Event.deleteMany({
+      $or: [
+        { fechaEvento: { $lt: ahora } },
+        { fechaExpiracion: { $lt: ahora } },
+      ]
+    });
+
+    let eventos = await Event.find({
       $or: [
         // Eventos con fecha exacta que aún no han pasado
         { fechaEvento: { $gte: ahora } },
@@ -252,9 +286,42 @@ router.get('/events', async (req, res) => {
         { fechaEvento: null, fechaExpiracion: null },
       ]
     })
-      .sort({ createdAt: -1 })
+      .sort({ fechaEvento: 1 })
       .limit(50)
       .lean();
+
+    // Sincronizar lectura desde Google Calendar
+    try {
+      const { fetchGoogleCalendarEvents } = require('../services/googleCalendar');
+      const gcalEvents = await fetchGoogleCalendarEvents();
+      
+      const knownGcalIds = new Set(eventos.map(e => e.gcalEventId).filter(Boolean));
+      const knownKeys = new Set(eventos.map(e => `${(e.titulo || '').toLowerCase().trim()}_${e.diaNum || ''}`));
+
+      const filteredGcalEvents = gcalEvents.filter(ge => {
+        const realId = ge.id.replace('gcal-', '');
+        if (knownGcalIds.has(realId)) return false;
+        
+        const key = `${(ge.titulo || '').toLowerCase().trim()}_${ge.diaNum || ''}`;
+        if (knownKeys.has(key)) return false;
+
+        return true;
+      });
+
+      // Combinar eventos evitando duplicados
+      eventos = [...eventos, ...filteredGcalEvents];
+      
+      // Re-ordenar combinados
+      eventos.sort((a, b) => {
+        const da = a.fechaEvento ? new Date(a.fechaEvento).getTime() : 0;
+        const db = b.fechaEvento ? new Date(b.fechaEvento).getTime() : 0;
+        return da - db;
+      });
+      
+    } catch (gcalErr) {
+      console.error('[Google Calendar] Error integrando eventos en GET:', gcalErr.message);
+    }
+      
     res.json({ ok: true, data: eventos });
   } catch (err) {
     console.error('[API] GET /events:', err.message);
@@ -265,7 +332,10 @@ router.get('/events', async (req, res) => {
 // POST /api/events
 router.post('/events', async (req, res) => {
   try {
-    const { titulo, dia, diaNum, hora, autor, fuente, desc } = req.body;
+    const { 
+      titulo, dia, diaNum, hora, autor, fuente, desc,
+      event_type, contact_method, notification_status, client_email, client_phone, client_name, personalized_message
+    } = req.body;
     const finalTitulo = desc ? `${titulo} - ${desc}` : titulo;
     
     let evento = await Event.findOne({ titulo: finalTitulo, dia: dia });
@@ -297,7 +367,22 @@ router.post('/events', async (req, res) => {
         autor: autor || 'Usuario',
         fuente: fuente || 'manual',
         fechaEvento,
+        event_type: event_type || 'internal',
+        contact_method: contact_method || 'none',
+        notification_status: notification_status || 'none',
+        client_email: client_email || '',
+        client_phone: client_phone || '',
+        client_name: client_name || '',
+        personalized_message: personalized_message || ''
       });
+      
+      // Sincronizar con Google Calendar de fondo y guardar el ID para no duplicarlo al leer
+      const { addEventToGoogleCalendar } = require('../services/googleCalendar');
+      addEventToGoogleCalendar(evento).then(async (gRes) => {
+        if (gRes && gRes.id) {
+          await Event.findByIdAndUpdate(evento._id, { gcalEventId: gRes.id });
+        }
+      }).catch(e => console.error(e));
     }
     
     const io = req.app.get('io');
@@ -311,10 +396,94 @@ router.post('/events', async (req, res) => {
   }
 });
 
+// PATCH /api/events/:id
+router.patch('/events/:id', async (req, res) => {
+  try {
+    const upds = req.body;
+    const ev = await Event.findByIdAndUpdate(req.params.id, { $set: upds }, { new: true });
+    if (!ev) return res.status(404).json({ ok: false, error: 'Evento no encontrado' });
+    res.json({ ok: true, data: ev });
+  } catch (err) {
+    console.error('[API] PATCH /events/:id:', err.message);
+    res.status(500).json({ ok: false, error: 'Error actualizando evento.' });
+  }
+});
+
 // DELETE /api/events/:id
 router.delete('/events/:id', async (req, res) => {
   try {
-    await Event.findByIdAndDelete(req.params.id);
+    const id = req.params.id;
+    if (id.startsWith('gcal-')) {
+      const realGcalId = id.replace('gcal-', '');
+      // Borrar de Google Calendar directamente
+      try {
+        const { google } = require('googleapis');
+        const fs = require('fs');
+        const path = require('path');
+        const CREDENTIALS_PATH = path.join(__dirname, '../config/credentials.json');
+        
+        let authClient = null;
+        if (fs.existsSync(CREDENTIALS_PATH)) {
+          authClient = new google.auth.GoogleAuth({
+            keyFile: CREDENTIALS_PATH,
+            scopes: ['https://www.googleapis.com/auth/calendar.events'],
+          });
+        } else if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+          authClient = new google.auth.GoogleAuth({
+            credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
+            scopes: ['https://www.googleapis.com/auth/calendar.events'],
+          });
+        }
+        
+        if (authClient) {
+          const calendar = google.calendar({ version: 'v3', auth: authClient });
+          await calendar.events.delete({
+            calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
+            eventId: realGcalId
+          });
+          console.log('[Google Calendar] Evento eliminado:', realGcalId);
+        }
+      } catch (gcalErr) {
+        console.error('[Google Calendar] Error eliminando evento:', gcalErr.message);
+      }
+      return res.json({ ok: true });
+    }
+
+    const ev = await Event.findById(id);
+    if (ev) {
+      if (ev.gcalEventId) {
+        try {
+          const { google } = require('googleapis');
+          const fs = require('fs');
+          const path = require('path');
+          const CREDENTIALS_PATH = path.join(__dirname, '../config/credentials.json');
+          
+          let authClient = null;
+          if (fs.existsSync(CREDENTIALS_PATH)) {
+            authClient = new google.auth.GoogleAuth({
+              keyFile: CREDENTIALS_PATH,
+              scopes: ['https://www.googleapis.com/auth/calendar.events'],
+            });
+          } else if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
+            authClient = new google.auth.GoogleAuth({
+              credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
+              scopes: ['https://www.googleapis.com/auth/calendar.events'],
+            });
+          }
+          if (authClient) {
+            const calendar = google.calendar({ version: 'v3', auth: authClient });
+            await calendar.events.delete({
+              calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
+              eventId: ev.gcalEventId
+            });
+          }
+        } catch (e) {
+          console.error('[Google Calendar] Error borrando sincronizado:', e.message);
+        }
+      }
+      await ev.deleteOne();
+    }
+
     res.json({ ok: true });
   } catch (err) {
     console.error('[API] DELETE /events/:id:', err.message);

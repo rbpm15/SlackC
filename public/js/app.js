@@ -500,13 +500,17 @@ socket.on('mensaje_recibido', (msg) => {
 
   // Si estamos en segundo plano, lanzar notificación para mensajes recibidos
   if (!isOwn && document.hidden) {
-    enviarNotificacionDesktop(`Mensaje de ${msg.autor}`, msg.texto);
+    if (msg.isDirectMessage || window.ChatModule.getCurrentChannelType() === 'dm') {
+      enviarNotificacionDesktop(`Mensaje directo de ${msg.autor}`, msg.texto);
+    } else {
+      enviarNotificacionDesktop(`Mensaje de ${msg.autor}`, msg.texto);
+    }
   }
 
   // Solo renderizar si el canal coincide con el canal visible
   if (msg.channelId !== ChatModule.getCurrentChannelId()) {
     // Canal diferente → solo incrementar badge
-    ChatModule.incrementarNoLeido(msg.channelId);
+    ChatModule.incrementarNoLeido(msg.channelId, msg.autor, msg.isDirectMessage);
     return;
   }
 
@@ -521,13 +525,22 @@ socket.on('mensaje_recibido', (msg) => {
   }, true);
 });
 
-// Notificación de no-leído (emitida por broadcast para otros canales)
+// Notificación de no-leído (emitida por broadcast para otros canales u otros usuarios)
 socket.on('mensaje_no_leido', (data) => {
   if (data.channelId !== ChatModule.getCurrentChannelId()) {
-    ChatModule.incrementarNoLeido(data.channelId);
-    // Notificación desktop (incluso si no estamos hidden, si estamos en otro canal, a menos que hidden)
-    if (document.hidden) {
-      enviarNotificacionDesktop(`Nueva actividad`, `Hay mensajes nuevos de ${data.autor || 'alguien'}.`);
+    ChatModule.incrementarNoLeido(data.channelId, data.autor, data.isDirectMessage);
+    
+    // Si es mensaje directo, lanzamos notificación de escritorio sí o sí
+    if (data.isDirectMessage) {
+      enviarNotificacionDesktop(`Mensaje directo de ${data.autor}`, data.texto || 'Tienes un nuevo mensaje');
+    }
+    // Si es canal público y no estamos mirando la app, notificar
+    else if (document.hidden) {
+      if (data.texto && data.texto.includes(`@${myName}`)) {
+        enviarNotificacionDesktop(`Mención de ${data.autor}`, data.texto);
+      } else {
+        enviarNotificacionDesktop(`Nueva actividad`, `Hay mensajes nuevos de ${data.autor || 'alguien'}.`);
+      }
     }
   }
 });
@@ -607,6 +620,24 @@ async function cargarDMs() {
     if (d2.ok) ChatModule.renderizarUsuarios(d2.data, myName);
   } catch { /* silencioso */ }
 }
+
+async function mostrarDMs() {
+  if (!myName) return;
+  try {
+    const r = await fetch(`/api/dm/list?user=${encodeURIComponent(myName)}`);
+    const d = await r.json();
+    if (d.ok) {
+      ChatModule.renderizarConversacionesDM(d.data, myName);
+    }
+  } catch (e) {
+    console.error('Error cargando DMs:', e);
+  }
+}
+
+document.getElementById('btnDirectMessages')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  mostrarDMs();
+});
 
 async function iniciarDM(otroUsuario) {
   if (!myName) { showNameModal(); return; }

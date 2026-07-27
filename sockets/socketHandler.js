@@ -120,10 +120,38 @@ function socketHandler(io) {
         });
 
         // 3. Notificar a usuarios en OTROS canales (badge de no leídos)
-        socket.broadcast.emit('mensaje_no_leido', {
-          channelId,
-          autor,
-        });
+        try {
+          const ChannelObj = require('../models/Channel');
+          let checkChannel = false;
+          // Validar si el channelId es un ObjectId válido antes de buscar en Mongo
+          if (/^[0-9a-fA-F]{24}$/.test(channelId)) {
+            checkChannel = await ChannelObj.findById(channelId);
+          }
+          
+          if (checkChannel && checkChannel.isDirectMessage) {
+            // Es un DM. Notificar solo a los usuarios implicados
+            for (const [sId, info] of usuariosOnline.entries()) {
+              if (sId !== socket.id && checkChannel.users.includes(info.nombre)) {
+                io.to(sId).emit('mensaje_no_leido', {
+                  channelId,
+                  autor,
+                  isDirectMessage: true,
+                  texto
+                });
+              }
+            }
+          } else {
+            // Canal público. Broadcast a todos.
+            socket.broadcast.emit('mensaje_no_leido', {
+              channelId,
+              autor,
+              isDirectMessage: false,
+              texto
+            });
+          }
+        } catch (err) {
+          console.error('[Socket] Error al procesar notificación de no leído', err);
+        }
 
         // 4. Detectar cita con IA (async, no bloquea el broadcast)
         detectarCitaIA(texto).then(async (cita) => {
@@ -171,6 +199,14 @@ function socketHandler(io) {
               fechaEvento,
               fechaExpiracion,
             });
+
+            // Sincronizar con Google Calendar de fondo
+            const { addEventToGoogleCalendar } = require('../services/googleCalendar');
+            addEventToGoogleCalendar(eventoDoc).then(async (gRes) => {
+              if (gRes && gRes.id) {
+                await Event.findByIdAndUpdate(eventoDoc._id, { gcalEventId: gRes.id });
+              }
+            }).catch(e => console.error(e));
           }
 
           await Message.findByIdAndUpdate(msgDoc._id, { tieneEvento: true });

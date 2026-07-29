@@ -40,6 +40,10 @@
 
   <!-- Scripts — cargados al final para no bloquear render -->
   <script src="/socket.io/socket.io.js"></script>
+  <!-- Módulos Offline-First: deben cargarse ANTES que el resto -->
+  <script src="/js/offlineDB.js"></script>
+  <script src="/js/syncManager.js"></script>
+  <!-- Módulos de la aplicación -->
   <script src="/js/agenda.js"></script>
   <script src="/js/chat.js"></script>
   <script src="/js/app.js"></script>

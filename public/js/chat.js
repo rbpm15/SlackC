@@ -402,11 +402,34 @@ async function seleccionarCanal(id, nombre, descripcion = '', tipo = 'channel') 
   // Notificar a app.js que cambió el canal (vía evento custom)
   document.dispatchEvent(new CustomEvent('canal_cambiado', { detail: { channelId: id } }));
 
-  // Cargar historial del canal
+  // Cargar historial — offline-first
   try {
-    const r = await fetch(`/api/messages?channelId=${id}`);
-    const d = await r.json();
-    if (d.ok) window.ChatModule.cargarHistorial(d.data);
+    // 1. Mostrar mensajes cacheados de IndexedDB de forma inmediata
+    if (window.OfflineDB) {
+      const cached = await OfflineDB.getMessages(id);
+      if (cached.length > 0) {
+        window.ChatModule.cargarHistorial(cached);
+      }
+    }
+
+    // 2. Si hay red, refrescar desde servidor y re-guardar en local
+    if (!window.SyncManager || SyncManager.isOnline()) {
+      const r = await fetch(`/api/messages?channelId=${id}`);
+      const d = await r.json();
+      if (d.ok) {
+        // Limpiar feed y re-renderizar con datos frescos
+        feedEl.querySelectorAll('.slack-message, .system-message, .day-divider').forEach(n => n.remove());
+        _lastAutor = null;
+        _lastDateStr = null;
+        window.ChatModule.cargarHistorial(d.data);
+        // Persistir en IndexedDB para la próxima visita offline
+        if (window.OfflineDB) {
+          OfflineDB.saveMessages(id, d.data).catch(e =>
+            console.warn('[Chat] Error guardando mensajes en local:', e)
+          );
+        }
+      }
+    }
   } catch (e) {
     console.error('[Chat] Error cargando historial:', e.message);
   }
@@ -623,6 +646,17 @@ window.ChatModule = {
       reactions: m.reactions,
     }, false));
     feedEl.scrollTop = feedEl.scrollHeight;
+  },
+
+  /** Persistir un mensaje recibido por socket en IndexedDB */
+  persistirMensaje(msg) {
+    if (!window.OfflineDB || !currentChannelId) return;
+    const id = (msg._id || msg.id || '').toString();
+    if (!id) return;
+    OfflineDB.upsertMessage(
+      { ...msg, _id: id },
+      currentChannelId
+    ).catch(e => console.warn('[Chat] Error persistiendo mensaje en local:', e));
   },
   actualizarMensaje,
 };

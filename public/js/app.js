@@ -166,6 +166,10 @@ function enviarNotificacionDesktop(titulo, cuerpo) {
 ════════════════════════════════════════════════════════════════ */
 const socket = io({ transports: ['websocket', 'polling'] });
 
+// Inicializar módulos offline
+if (window.OfflineDB) OfflineDB.init().catch(e => console.warn('[App] OfflineDB error:', e));
+if (window.SyncManager) SyncManager.init(socket);
+
 socket.on('connect', () => {
   mySocketId = socket.id;
   actualizarEstadoConexion(true);
@@ -469,24 +473,48 @@ chatInputEl.addEventListener('keydown', (e) => {
 });
 
 /* ════════════════════════════════════════════════════════════════
-   ENVIAR MENSAJE
+   ENVIAR MENSAJE — Offline-first
 ════════════════════════════════════════════════════════════════ */
-function enviarMensaje() {
+async function enviarMensaje() {
   if (!resolverNombre()) return;
 
-  const texto     = chatInputEl.value.trim();
-  const channelId = ChatModule.getCurrentChannelId();
+  const texto       = chatInputEl.value.trim();
+  const channelId   = ChatModule.getCurrentChannelId();
+  const channelType = ChatModule.getCurrentChannelType();
 
   if (!texto || !channelId) return;
 
   const tmpId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`;
   _pendingIds.add(tmpId);
 
-  socket.emit('nuevo_mensaje', { texto, autor: myName, tmpId, channelId });
+  // Optimistic update: renderizar el mensaje localmente de inmediato
+  ChatModule.renderizarMensaje({
+    id:        tmpId,
+    autor:     myName,
+    texto,
+    createdAt: new Date().toISOString(),
+    isOwn:     true,
+  }, true);
 
   chatInputEl.value        = '';
   chatInputEl.style.height = 'auto';
   sendBtnEl.disabled       = true;
+
+  if (window.SyncManager && !SyncManager.isOnline()) {
+    // Sin red: encolar para sincronizar al reconectar
+    if (window.OfflineDB) {
+      await OfflineDB.addToPendingQueue({
+        type: 'send_message',
+        tmpId,
+        payload: { channelId, autor: myName, texto, tmpId, channelType },
+      });
+    }
+    SyncManager.updateUI('offline');
+    console.log('[App] Mensaje encolado offline:', tmpId);
+  } else {
+    // Con red: emitir por socket normalmente
+    socket.emit('nuevo_mensaje', { texto, autor: myName, tmpId, channelId });
+  }
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -496,9 +524,27 @@ function enviarMensaje() {
 // Mensaje de chat
 socket.on('mensaje_recibido', (msg) => {
   const isOwn = msg.socketId === mySocketId;
-  if (msg.tmpId) _pendingIds.delete(msg.tmpId);
+  const tmpId = msg.tmpId;
 
-  // Si estamos en segundo plano, lanzar notificación para mensajes recibidos
+  // Si el mensaje es propio y ya se renderizó como optimistic update,
+  // reemplazar el tmpId por el id real de MongoDB (cambiar el DOM id)
+  if (isOwn && tmpId && _pendingIds.has(tmpId)) {
+    _pendingIds.delete(tmpId);
+    const tmpEl = document.getElementById(`msg-${tmpId}`);
+    if (tmpEl && msg._id) {
+      tmpEl.id = `msg-${msg._id}`;
+      // Actualizar botón de eliminar
+      const delBtn = tmpEl.querySelector('.btn-delete');
+      if (delBtn) delBtn.dataset.id = msg._id;
+    }
+    // Persistir en IndexedDB con el id real
+    if (window.ChatModule && window.ChatModule.persistirMensaje) {
+      window.ChatModule.persistirMensaje(msg, msg.channelId);
+    }
+    return; // ya está en el DOM
+  }
+
+  // Notificación de escritorio para mensajes ajenos
   if (!isOwn && document.hidden) {
     if (msg.isDirectMessage || window.ChatModule.getCurrentChannelType() === 'dm') {
       enviarNotificacionDesktop(`Mensaje directo de ${msg.autor}`, msg.texto);
@@ -509,7 +555,6 @@ socket.on('mensaje_recibido', (msg) => {
 
   // Solo renderizar si el canal coincide con el canal visible
   if (msg.channelId !== ChatModule.getCurrentChannelId()) {
-    // Canal diferente → solo incrementar badge
     ChatModule.incrementarNoLeido(msg.channelId, msg.autor, msg.isDirectMessage);
     return;
   }
@@ -523,6 +568,11 @@ socket.on('mensaje_recibido', (msg) => {
     createdAt: msg.createdAt || new Date().toISOString(),
     isOwn,
   }, true);
+
+  // Persistir en IndexedDB para acceso offline futuro
+  if (window.ChatModule && window.ChatModule.persistirMensaje) {
+    window.ChatModule.persistirMensaje(msg, msg.channelId);
+  }
 });
 
 // Notificación de no-leído (emitida por broadcast para otros canales u otros usuarios)
@@ -657,36 +707,73 @@ async function iniciarDM(otroUsuario) {
    CARGA INICIAL
 ════════════════════════════════════════════════════════════════ */
 async function cargarInicial() {
-  try {
+  // ── 1. Datos offline (instantáneo) ──────────────────────────
+  if (window.OfflineDB) {
+    try {
+      const [cachedChannels, cachedEvents] = await Promise.all([
+        OfflineDB.getChannels(),
+        OfflineDB.getEvents(),
+      ]);
+
+      if (cachedChannels.length > 0) {
+        console.log(`[App] Cargando ${cachedChannels.length} canales desde cache local`);
+        ChatModule.renderizarCanales(cachedChannels);
+      }
+      if (cachedEvents.length > 0) {
+        console.log(`[App] Cargando ${cachedEvents.length} eventos desde cache local`);
+        AgendaModule.cargarDesdeServidor(cachedEvents);
+      }
+    } catch (e) {
+      console.warn('[App] Error leyendo cache offline:', e);
+    }
+  }
+
+  // ── 2. Si hay red, sincronizar desde servidor ────────────────
+  if (!window.SyncManager || SyncManager.isOnline()) {
+    try {
+      if (myName) {
+        fetch('/api/users/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: myName })
+        }).catch(e => console.error(e));
+      }
+
+      const [rChannels, rEvs] = await Promise.allSettled([
+        fetch(`/api/channels?user=${encodeURIComponent(myName)}`).then(r => r.json()),
+        fetch('/api/events').then(r => r.json()),
+      ]);
+
+      if (rChannels.status === 'fulfilled' && rChannels.value.ok) {
+        const channels = rChannels.value.data;
+        ChatModule.renderizarCanales(channels);
+        // Persistir en local para offline
+        if (window.OfflineDB) OfflineDB.saveChannels(channels).catch(() => {});
+      }
+
+      if (rEvs.status === 'fulfilled' && rEvs.value.ok) {
+        const events = rEvs.value.data;
+        AgendaModule.cargarDesdeServidor(events);
+        // Persistir en local para offline
+        if (window.OfflineDB) OfflineDB.saveEvents(events).catch(() => {});
+      }
+
+      // DMs solo si ya tenemos nombre
+      if (myName) cargarDMs();
+
+      // Pedir permisos de notificaciones
+      initNotifications();
+
+    } catch (e) {
+      console.error('[App] Error carga inicial desde servidor:', e.message);
+    }
+  } else {
+    // Sin red: usar solo el cache
+    console.warn('[App] Sin conexión. Usando datos offline.');
     if (myName) {
-      fetch('/api/users/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: myName })
-      }).catch(e => console.error(e));
+      // Intentar renderizar DMs desde cache si existieran
+      cargarDMs().catch(() => {});
     }
-
-    const [rChannels, rEvs] = await Promise.allSettled([
-      fetch(`/api/channels?user=${encodeURIComponent(myName)}`).then(r => r.json()),
-      fetch('/api/events').then(r => r.json()),
-    ]);
-
-    if (rChannels.status === 'fulfilled' && rChannels.value.ok) {
-      ChatModule.renderizarCanales(rChannels.value.data);
-    }
-
-    if (rEvs.status === 'fulfilled' && rEvs.value.ok) {
-      AgendaModule.cargarDesdeServidor(rEvs.value.data);
-    }
-
-    // DMs solo si ya tenemos nombre
-    if (myName) cargarDMs();
-
-    // Pedir permisos de notificaciones al cargar app
-    initNotifications();
-
-  } catch (e) {
-    console.error('[App] Error carga inicial:', e.message);
   }
 }
 

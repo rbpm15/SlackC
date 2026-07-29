@@ -383,32 +383,50 @@ const AgendaModule = {
   /** Eliminar tarjeta del DOM y DB */
   async eliminarEvento(id) {
     if (!confirm('¿Seguro que deseas eliminar este evento?')) return;
-    
-    try {
-      await fetch(`/api/events/${id}`, { method: 'DELETE' });
-    } catch (e) {
-      console.error('Error eliminando evento', e);
+
+    // Eliminar del IndexedDB local
+    if (window.OfflineDB) {
+      OfflineDB.deleteEvent(id).catch(() => {});
     }
-    
+
+    // Si es un id temporal (offline), solo limpiar la cola si estaba pendiente
+    if (id.startsWith('local_')) {
+      // Nada que hacer en el server, solo remover del DOM
+    } else if (!window.SyncManager || SyncManager.isOnline()) {
+      try {
+        await fetch(`/api/events/${id}`, { method: 'DELETE' });
+      } catch (e) {
+        console.error('Error eliminando evento', e);
+        // Encolar para cuando haya red
+        if (window.OfflineDB) {
+          OfflineDB.addToPendingQueue({ type: 'delete_event', payload: { eventId: id } }).catch(() => {});
+        }
+      }
+    } else {
+      // Sin red: encolar
+      if (window.OfflineDB) {
+        OfflineDB.addToPendingQueue({ type: 'delete_event', payload: { eventId: id } }).catch(() => {});
+      }
+      if (window.SyncManager) SyncManager.updateUI('offline');
+    }
+
     const card = document.getElementById(`ev-${id}`);
     if (!card) return;
-    
-    // Obtener día para saber si tenemos que quitar el puntito
+
     const diaNum = card.dataset.diaNum;
-    
+
     card.style.transition = 'opacity 0.2s, transform 0.2s';
     card.style.opacity    = '0';
     card.style.transform  = 'translateX(20px)';
     setTimeout(() => {
       card.remove();
       actualizarContador();
-      
-      // Quitar puntito del calendario si ya no hay eventos ese día
+
       if (diaNum) {
         const otros = document.querySelector(`.event-card[data-dia-num="${diaNum}"]`);
         if (!otros) {
           const cell = document.getElementById(`cal-day-${diaNum}`);
-          const ind = cell?.querySelector('.event-indicator');
+          const ind  = cell?.querySelector('.event-indicator');
           if (ind) ind.remove();
         }
       }
@@ -502,42 +520,98 @@ const AgendaModule = {
 
   async guardarEventoManual() {
     const titulo = document.getElementById('newEventTitle').value.trim();
-    const fecha = document.getElementById('newEventDate').value;
-    const hora = document.getElementById('newEventTime').value;
-    const desc = document.getElementById('newEventDesc').value.trim();
-    
+    const fecha  = document.getElementById('newEventDate').value;
+    const hora   = document.getElementById('newEventTime').value;
+    const desc   = document.getElementById('newEventDesc').value.trim();
+
     if (!titulo || !fecha || !hora) {
       alert('Por favor completa el título, fecha y horario.');
       return;
     }
-    
+
     const diaNum = parseInt(fecha.split('-')[2], 10);
-    const autor = document.getElementById('profileNameDisplay')?.textContent || 'Usuario';
-    
+    const mesNum = parseInt(fecha.split('-')[1], 10) - 1; // 0-indexed
+    const anioNum = parseInt(fecha.split('-')[0], 10);
+    const autor  = document.getElementById('profileNameDisplay')?.textContent || 'Usuario';
+
     const evt = {
-      titulo: titulo,
-      dia: `Día ${diaNum}`,
-      diaNum: diaNum,
-      hora: hora,
-      autor: autor,
+      titulo,
+      dia:    `Día ${diaNum}`,
+      diaNum,
+      hora,
+      autor,
       fuente: 'manual',
-      desc: desc
+      desc,
+      fechaEvento: new Date(anioNum, mesNum, diaNum, 12, 0, 0).toISOString(),
     };
-    
-    try {
-      const res = await fetch('/api/events', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(evt)
-      });
-      const data = await res.json();
-      if (data.ok) {
-        this.cerrarModalRegistro();
-      } else {
-        alert('Error: ' + data.error);
+
+    // Generar id temporal para optimistic update
+    const tmpId = `local_${Date.now()}`;
+    const evtLocal = {
+      ...evt,
+      _id:       tmpId,
+      id:        tmpId,
+      mes:       mesNum,
+      anio:      anioNum,
+      createdAt: new Date().toISOString(),
+      pendingSync: true,
+    };
+
+    // 1. Guardar en IndexedDB y renderizar de inmediato (offline-first)
+    if (window.OfflineDB) {
+      await OfflineDB.saveEvents([evtLocal]).catch(() => {});
+    }
+    renderizarEvento(evtLocal, true);
+    this.cerrarModalRegistro();
+
+    // 2. Enviar al servidor o encolar si no hay red
+    if (!window.SyncManager || SyncManager.isOnline()) {
+      try {
+        const res  = await fetch('/api/events', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify(evt),
+        });
+        const data = await res.json();
+        if (data.ok && data.data) {
+          const realId = data.data._id;
+          // Reemplazar en DOM
+          const oldCard = document.getElementById(`ev-${tmpId}`);
+          if (oldCard) {
+            oldCard.id = `ev-${realId}`;
+            const delBtn = oldCard.querySelector('.event-card-delete');
+            if (delBtn) delBtn.setAttribute('onclick', `AgendaModule.eliminarEvento('${realId}')`);
+          }
+          // Actualizar IndexedDB
+          if (window.OfflineDB) {
+            await OfflineDB.deleteEvent(tmpId).catch(() => {});
+            await OfflineDB.saveEvents([{ ...data.data, _id: realId }]).catch(() => {});
+          }
+        } else {
+          alert('Error: ' + (data.error || 'No se pudo guardar'));
+        }
+      } catch (e) {
+        // Red caîda a mitad — encolar para cuando haya conexión
+        if (window.OfflineDB) {
+          await OfflineDB.addToPendingQueue({
+            type:  'create_event',
+            tmpId,
+            payload: evt,
+          }).catch(() => {});
+        }
+        if (window.SyncManager) SyncManager.updateUI('offline');
       }
-    } catch (e) {
-      alert('Error al guardar el evento.');
+    } else {
+      // Sin red: encolar directamente
+      if (window.OfflineDB) {
+        await OfflineDB.addToPendingQueue({
+          type:  'create_event',
+          tmpId,
+          payload: evt,
+        }).catch(() => {});
+      }
+      if (window.SyncManager) SyncManager.updateUI('offline');
+      console.log('[Agenda] Evento encolado offline:', tmpId);
     }
   }
 };

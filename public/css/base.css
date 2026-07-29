@@ -272,3 +272,62 @@ input:checked + .n8n-slider:before {
     border-radius: 12px !important;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════
+   BADGE DE ESTADO DE CONEXIÓN (SyncManager)
+   ═══════════════════════════════════════════════════════════════ */
+.sync-badge {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+  padding: 9px 18px;
+  border-radius: 24px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--font-main);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  z-index: 99999;
+  transition: opacity 0.35s ease, transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.25);
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+  pointer-events: none;
+  user-select: none;
+}
+
+.sync-badge--hidden {
+  opacity: 0;
+  transform: translateX(-50%) translateY(80px);
+}
+
+.sync-badge--offline {
+  background: linear-gradient(135deg, #E01E5A, #C0143A);
+  color: #fff;
+  opacity: 1;
+}
+
+.sync-badge--syncing {
+  background: linear-gradient(135deg, #ECB22E, #D49A1A);
+  color: #1a1a1a;
+  opacity: 1;
+}
+
+/* Ícono de sincronización rotando */
+.sync-badge--syncing #syncStatusIcon {
+  display: inline-block;
+  animation: syncSpin 1s linear infinite;
+}
+
+@keyframes syncSpin {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+
+.sync-badge--online {
+  background: linear-gradient(135deg, #2EB67D, #1D9160);
+  color: #fff;
+  opacity: 1;
+}

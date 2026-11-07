@@ -22,6 +22,14 @@ const EventSchema = new mongoose.Schema(
       type: Number,
       required: false,
     },
+    mes: {
+      type: Number,
+      required: false,
+    },
+    anio: {
+      type: Number,
+      required: false,
+    },
     hora: {
       type: String,
       required: [true, 'La hora del evento es obligatoria.'],

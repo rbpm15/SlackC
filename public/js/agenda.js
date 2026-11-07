@@ -186,20 +186,31 @@ function actualizarContador() {
  * Eventos más próximos tienen un timestamp menor.
  */
 function obtenerTimestampEvento(ev) {
-  let anio = ev.anio;
-  let mes = ev.mes;
-  let diaNum = ev.diaNum;
+  let anio = (ev.anio !== undefined && ev.anio !== null) ? Number(ev.anio) : null;
+  let mes = (ev.mes !== undefined && ev.mes !== null) ? Number(ev.mes) : null;
+  let diaNum = (ev.diaNum !== undefined && ev.diaNum !== null) ? Number(ev.diaNum) : null;
 
-  if (ev.fechaEvento) {
-    const f = new Date(ev.fechaEvento);
-    if (!isNaN(f.getTime())) {
-      anio = f.getFullYear();
-      mes = f.getMonth();
-      diaNum = f.getDate();
+  // Si ev.dia tiene fecha en texto, extraerla si nos falta algún dato
+  if ((!diaNum || mes === null || !anio) && ev.dia) {
+    const p = parsearFechaTexto(ev.dia);
+    if (p) {
+      if (!diaNum) diaNum = p.dia;
+      if (mes === null) mes = p.mes;
+      if (!anio) anio = p.anio;
     }
   }
 
-  let horas = 9;
+  // Si aún no tenemos día/mes/año, extraer de fechaEvento
+  if ((!diaNum || mes === null || !anio) && ev.fechaEvento) {
+    const f = new Date(ev.fechaEvento);
+    if (!isNaN(f.getTime())) {
+      if (!anio) anio = f.getFullYear();
+      if (mes === null) mes = f.getMonth();
+      if (!diaNum) diaNum = f.getDate();
+    }
+  }
+
+  let horas = 12;
   let minutos = 0;
 
   if (ev.hora) {
@@ -213,8 +224,13 @@ function obtenerTimestampEvento(ev) {
     }
   }
 
-  if (diaNum && mes !== null && mes !== undefined && anio) {
+  if (diaNum && mes !== null && anio) {
     return new Date(anio, mes, diaNum, horas, minutos, 0).getTime();
+  }
+
+  if (ev.fechaEvento) {
+    const f = new Date(ev.fechaEvento);
+    if (!isNaN(f.getTime())) return f.getTime();
   }
 
   if (ev.fechaExpiracion) {
@@ -460,30 +476,38 @@ const AgendaModule = {
     const hoy = new Date();
     hoy.setHours(0,0,0,0);
 
-    let fechaReal = ev.fechaEvento ? new Date(ev.fechaEvento) : null;
-    let mesEv = null;
-    let anioEv = null;
-    let diaNumEv = ev.diaNum || null;
+    let diaNumEv = (ev.diaNum !== undefined && ev.diaNum !== null) ? Number(ev.diaNum) : null;
+    let mesEv = (ev.mes !== undefined && ev.mes !== null) ? Number(ev.mes) : null;
+    let anioEv = (ev.anio !== undefined && ev.anio !== null) ? Number(ev.anio) : null;
 
-    if (fechaReal) {
-      mesEv = fechaReal.getMonth();
-      anioEv = fechaReal.getFullYear();
-      diaNumEv = fechaReal.getDate();
-    } else if (ev.dia) {
+    if (ev.dia) {
       const parsed = parsearFechaTexto(ev.dia, hoy);
       if (parsed) {
-        mesEv = parsed.mes;
-        anioEv = parsed.anio;
-        diaNumEv = parsed.dia;
-        fechaReal = new Date(parsed.anio, parsed.mes, parsed.dia, 23, 59, 59);
+        if (!diaNumEv) diaNumEv = parsed.dia;
+        if (mesEv === null) mesEv = parsed.mes;
+        if (anioEv === null) anioEv = parsed.anio;
       }
     }
 
-    // Si la fecha ya pasó, no agregar como evento futuro
-    if (fechaReal && fechaReal < hoy) return;
+    let fechaReal = ev.fechaEvento ? new Date(ev.fechaEvento) : null;
+    if (fechaReal && !diaNumEv) {
+      mesEv = fechaReal.getMonth();
+      anioEv = fechaReal.getFullYear();
+      diaNumEv = fechaReal.getDate();
+    }
 
     if (mesEv === null) mesEv = this.currentMonth;
     if (anioEv === null) anioEv = this.currentYear;
+
+    let finDelDia = null;
+    if (diaNumEv) {
+      finDelDia = new Date(anioEv, mesEv, diaNumEv, 23, 59, 59);
+    } else if (fechaReal) {
+      finDelDia = fechaReal;
+    }
+
+    // Si la fecha ya pasó (ayer o antes), no agregar como evento futuro
+    if (finDelDia && finDelDia < hoy) return;
 
     const evento = {
       id:        ev._id || ev.id,
@@ -495,7 +519,7 @@ const AgendaModule = {
       hora:      ev.hora,
       autor:     ev.autor || '',
       fuente:    ev.fuente || 'local',
-      fechaEvento: fechaReal ? fechaReal.toISOString() : (ev.fechaEvento || null),
+      fechaEvento: ev.fechaEvento || (finDelDia ? finDelDia.toISOString() : null),
       createdAt: ev.createdAt || new Date().toISOString(),
     };
 
@@ -523,37 +547,38 @@ const AgendaModule = {
     const eventosValidos = [];
 
     eventos.forEach(ev => {
-      let fechaReal = ev.fechaEvento ? new Date(ev.fechaEvento) : null;
-      let mesEv = null;
-      let anioEv = null;
-      let diaNumEv = ev.diaNum || null;
+      let diaNumEv = (ev.diaNum !== undefined && ev.diaNum !== null) ? Number(ev.diaNum) : null;
+      let mesEv = (ev.mes !== undefined && ev.mes !== null) ? Number(ev.mes) : null;
+      let anioEv = (ev.anio !== undefined && ev.anio !== null) ? Number(ev.anio) : null;
 
-      if (fechaReal) {
-        mesEv = fechaReal.getMonth();
-        anioEv = fechaReal.getFullYear();
-        diaNumEv = fechaReal.getDate();
-      } else if (ev.dia) {
+      if (ev.dia) {
         const parsed = parsearFechaTexto(ev.dia, ev.createdAt ? new Date(ev.createdAt) : hoy);
         if (parsed) {
-          mesEv = parsed.mes;
-          anioEv = parsed.anio;
-          diaNumEv = parsed.dia;
-          fechaReal = new Date(parsed.anio, parsed.mes, parsed.dia, 23, 59, 59);
+          if (!diaNumEv) diaNumEv = parsed.dia;
+          if (mesEv === null) mesEv = parsed.mes;
+          if (anioEv === null) anioEv = parsed.anio;
         }
       }
 
-      if (!fechaReal && diaNumEv) {
-        const baseDate = ev.createdAt ? new Date(ev.createdAt) : hoy;
-        mesEv = baseDate.getMonth();
-        anioEv = baseDate.getFullYear();
-        fechaReal = new Date(anioEv, mesEv, diaNumEv, 23, 59, 59);
+      let fechaReal = ev.fechaEvento ? new Date(ev.fechaEvento) : null;
+      if (fechaReal && !diaNumEv) {
+        mesEv = fechaReal.getMonth();
+        anioEv = fechaReal.getFullYear();
+        diaNumEv = fechaReal.getDate();
       }
-
-      // Si la fecha ya pasó, descartar de próximos eventos
-      if (fechaReal && fechaReal < hoy) return;
 
       if (mesEv === null) mesEv = this.currentMonth;
       if (anioEv === null) anioEv = this.currentYear;
+
+      let finDelDia = null;
+      if (diaNumEv) {
+        finDelDia = new Date(anioEv, mesEv, diaNumEv, 23, 59, 59);
+      } else if (fechaReal) {
+        finDelDia = fechaReal;
+      }
+
+      // Si la fecha ya pasó (ayer o antes), descartar de próximos eventos
+      if (finDelDia && finDelDia < hoy) return;
 
       const evtFormat = {
         id:        ev._id || ev.id,
@@ -565,7 +590,7 @@ const AgendaModule = {
         hora:      ev.hora,
         autor:     ev.autor || '',
         fuente:    ev.fuente || 'local',
-        fechaEvento: fechaReal ? fechaReal.toISOString() : (ev.fechaEvento || null),
+        fechaEvento: ev.fechaEvento || (finDelDia ? finDelDia.toISOString() : null),
         createdAt: ev.createdAt,
       };
       
@@ -743,15 +768,32 @@ const AgendaModule = {
     const autor  = document.getElementById('profileNameDisplay')?.textContent || 'Usuario';
     const MESES_NOMBRES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
+    // Parsear hora para calcular la hora exacta del evento
+    let horas = 12;
+    let minutos = 0;
+    if (hora) {
+      const matchH = hora.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+      if (matchH) {
+        horas = parseInt(matchH[1], 10);
+        minutos = matchH[2] ? parseInt(matchH[2], 10) : 0;
+        const mer = matchH[3]?.toLowerCase();
+        if (mer === 'pm' && horas < 12) horas += 12;
+        if (mer === 'am' && horas === 12) horas = 0;
+      }
+    }
+    const fechaExacta = new Date(anioNum, mesNum, diaNum, horas, minutos, 0);
+
     const evt = {
       titulo,
       dia:    `${diaNum} de ${MESES_NOMBRES[mesNum]} de ${anioNum}`,
       diaNum,
+      mes:    mesNum,
+      anio:   anioNum,
       hora,
       autor,
       fuente: 'manual',
       desc,
-      fechaEvento: new Date(anioNum, mesNum, diaNum, 23, 59, 59).toISOString(),
+      fechaEvento: fechaExacta.toISOString(),
     };
 
     // Generar id temporal para optimistic update

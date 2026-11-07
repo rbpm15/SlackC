@@ -346,11 +346,12 @@ router.get('/events', async (req, res) => {
     // ----------------------------------------------------
 
     const ahora = new Date();
+    const inicioHoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 0, 0, 0);
 
-    // 1. Eliminar eventos pasados con fecha definida
+    // 1. Eliminar eventos pasados (días anteriores a hoy)
     await Event.deleteMany({
       $or: [
-        { fechaEvento: { $lt: ahora } },
+        { fechaEvento: { $lt: inicioHoy } },
         { fechaExpiracion: { $lt: ahora } },
       ]
     });
@@ -360,10 +361,15 @@ router.get('/events', async (req, res) => {
     for (const leg of legacyEvents) {
       const resFecha = calcularFechaEvento(leg.dia, leg.hora, leg.createdAt ? new Date(leg.createdAt) : ahora, false);
       if (resFecha.fechaEvento) {
-        if (resFecha.fechaEvento < ahora) {
+        if (resFecha.fechaEvento < inicioHoy) {
           await Event.deleteOne({ _id: leg._id });
         } else {
-          await Event.updateOne({ _id: leg._id }, { fechaEvento: resFecha.fechaEvento });
+          await Event.updateOne({ _id: leg._id }, { 
+            fechaEvento: resFecha.fechaEvento,
+            diaNum: leg.diaNum || resFecha.diaNum,
+            mes: resFecha.mes,
+            anio: resFecha.anio
+          });
         }
       } else if (resFecha.fechaExpiracion) {
         if (resFecha.fechaExpiracion < ahora) {
@@ -383,10 +389,12 @@ router.get('/events', async (req, res) => {
     // 3. Obtener solo eventos vigentes (próximos)
     let eventos = await Event.find({
       $or: [
-        // Eventos con fecha exacta que aún no han pasado
-        { fechaEvento: { $gte: ahora } },
+        // Eventos con fecha exacta que son hoy o posteriores
+        { fechaEvento: { $gte: inicioHoy } },
         // Eventos vagos con fecha de expiración que aún no ha pasado
         { fechaEvento: null, fechaExpiracion: { $gte: ahora } },
+        // Eventos sin fecha definida aún vigentes
+        { fechaEvento: null, fechaExpiracion: null },
       ]
     })
       .sort({ fechaEvento: 1 })
@@ -436,7 +444,7 @@ router.get('/events', async (req, res) => {
 router.post('/events', async (req, res) => {
   try {
     const { 
-      titulo, dia, diaNum, hora, autor, fuente, desc,
+      titulo, dia, diaNum, mes, anio, hora, autor, fuente, desc,
       fechaEvento: clientFechaEvento,
       event_type, contact_method, notification_status, client_email, client_phone, client_name, personalized_message
     } = req.body;
@@ -456,28 +464,39 @@ router.post('/events', async (req, res) => {
     } else {
       let fechaEvento = null;
       let fechaExpiracion = null;
+      let finalDiaNum = (diaNum !== undefined && diaNum !== null) ? Number(diaNum) : null;
+      let finalMes = (mes !== undefined && mes !== null) ? Number(mes) : null;
+      let finalAnio = (anio !== undefined && anio !== null) ? Number(anio) : null;
       const hoy = new Date();
 
       if (clientFechaEvento) {
         fechaEvento = new Date(clientFechaEvento);
-        fechaEvento.setHours(23, 59, 59, 999);
       } else if (dia) {
         const resFecha = calcularFechaEvento(dia, hora, hoy, true);
         fechaEvento = resFecha.fechaEvento;
         fechaExpiracion = resFecha.fechaExpiracion;
+        if (resFecha.diaNum && !finalDiaNum) finalDiaNum = resFecha.diaNum;
+        if (resFecha.mes !== null && resFecha.mes !== undefined && finalMes === null) finalMes = resFecha.mes;
+        if (resFecha.anio && !finalAnio) finalAnio = resFecha.anio;
       }
 
-      if (!fechaEvento && !fechaExpiracion && diaNum) {
-        fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth(), diaNum, 23, 59, 59);
+      if (!fechaEvento && !fechaExpiracion && finalDiaNum) {
+        const { parsearHoraInicio } = require('../services/dateUtils');
+        const { horas, minutos } = parsearHoraInicio(hora || '');
+        let m = finalMes !== null ? finalMes : hoy.getMonth();
+        let a = finalAnio || hoy.getFullYear();
+        fechaEvento = new Date(a, m, finalDiaNum, horas, minutos, 0);
         if (fechaEvento < hoy) {
-          fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth() + 1, diaNum, 23, 59, 59);
+          fechaEvento = new Date(a, m + 1, finalDiaNum, horas, minutos, 0);
         }
       }
 
       evento = await Event.create({
         titulo: finalTitulo,
         dia: dia,
-        diaNum: diaNum,
+        diaNum: finalDiaNum,
+        mes: finalMes,
+        anio: finalAnio,
         hora: hora,
         autor: autor || 'Usuario',
         fuente: fuente || 'manual',

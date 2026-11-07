@@ -174,30 +174,45 @@ function socketHandler(io) {
             // Calcular fechaEvento y fechaExpiracion
             let fechaEvento = null;
             let fechaExpiracion = null;
+            let finalDiaNum = (cita.diaNum !== undefined && cita.diaNum !== null) ? Number(cita.diaNum) : null;
+            let finalMes = (cita.mes !== undefined && cita.mes !== null) ? Number(cita.mes) : null;
+            let finalAnio = (cita.anio !== undefined && cita.anio !== null) ? Number(cita.anio) : null;
             const hoy = new Date();
+            const { parsearHoraInicio } = require('../services/dateUtils');
+            const { horas, minutos } = parsearHoraInicio(cita.hora || '');
 
             if (cita.fechaISO) {
               const [y, m, d] = cita.fechaISO.split('-').map(Number);
-              fechaEvento = new Date(y, m - 1, d, 23, 59, 59);
+              fechaEvento = new Date(y, m - 1, d, horas, minutos, 0);
+              finalAnio = y;
+              finalMes = m - 1;
+              finalDiaNum = d;
             } else if (cita.dia) {
               const res = calcularFechaEvento(cita.dia, cita.hora, hoy, true);
               fechaEvento = res.fechaEvento;
               fechaExpiracion = res.fechaExpiracion;
+              if (res.diaNum && !finalDiaNum) finalDiaNum = res.diaNum;
+              if (res.mes !== null && res.mes !== undefined && finalMes === null) finalMes = res.mes;
+              if (res.anio && !finalAnio) finalAnio = res.anio;
             }
 
             if (!fechaEvento && !fechaExpiracion) {
-              if (cita.diaNum) {
-                fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth(), cita.diaNum, 23, 59, 59);
+              if (finalDiaNum) {
+                let m = finalMes !== null ? finalMes : hoy.getMonth();
+                let a = finalAnio || hoy.getFullYear();
+                fechaEvento = new Date(a, m, finalDiaNum, horas, minutos, 0);
                 if (fechaEvento < hoy) {
-                  fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth() + 1, cita.diaNum, 23, 59, 59);
+                  fechaEvento = new Date(a, m + 1, finalDiaNum, horas, minutos, 0);
+                  finalMes = m + 1;
                 }
               } else {
                 fechaExpiracion = new Date(hoy.getTime() + 7 * 24 * 60 * 60 * 1000);
               }
             }
 
-            // Si la fecha ya pasó en el calendario, no registrarla como próximo evento
-            if (fechaEvento && fechaEvento < hoy) {
+            // Si la fecha ya pasó en el calendario (días anteriores a hoy), no registrarla
+            const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 0, 0, 0);
+            if (fechaEvento && fechaEvento < inicioHoy) {
               console.log('[Socket] Cita ignorada por corresponder a una fecha pasada:', cita.titulo, cita.dia);
               return;
             }
@@ -205,7 +220,9 @@ function socketHandler(io) {
             eventoDoc = await Event.create({
               titulo:        foundTitle,
               dia:           foundDia,
-              diaNum:        cita.diaNum,
+              diaNum:        finalDiaNum,
+              mes:           finalMes,
+              anio:          finalAnio,
               hora:          cita.hora,
               autor,
               channelId,

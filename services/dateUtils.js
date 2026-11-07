@@ -165,20 +165,27 @@ function parsearFechaEspanol(textoFecha, horaTexto = '', baseDate = new Date(), 
  */
 function calcularFechaEvento(textoFecha, horaTexto = '', baseDate = new Date(), esParaNuevo = false) {
   const parsed = parsearFechaEspanol(textoFecha, horaTexto, baseDate, esParaNuevo);
-  if (!parsed) return { fechaEvento: null, fechaExpiracion: null };
+  if (!parsed) return { fechaEvento: null, fechaExpiracion: null, diaNum: null, mes: null, anio: null };
 
   if (parsed.esExacta) {
-    // 23:59:59 para que sea válido durante todo el día indicado
-    const fecha = new Date(parsed.anio, parsed.mes, parsed.dia, 23, 59, 59);
-    return { fechaEvento: fecha, fechaExpiracion: null, parsed };
+    const { horas, minutos } = parsearHoraInicio(horaTexto);
+    const fecha = new Date(parsed.anio, parsed.mes, parsed.dia, horas, minutos, 0);
+    return {
+      fechaEvento: fecha,
+      fechaExpiracion: null,
+      diaNum: parsed.dia,
+      mes: parsed.mes,
+      anio: parsed.anio,
+      parsed
+    };
   }
 
   if (parsed.esVaga) {
     const fechaExp = new Date(baseDate.getTime() + (parsed.diasExpira || 7) * 24 * 60 * 60 * 1000);
-    return { fechaEvento: null, fechaExpiracion: fechaExp, parsed };
+    return { fechaEvento: null, fechaExpiracion: fechaExp, diaNum: null, mes: null, anio: null, parsed };
   }
 
-  return { fechaEvento: null, fechaExpiracion: null };
+  return { fechaEvento: null, fechaExpiracion: null, diaNum: null, mes: null, anio: null };
 }
 
 /**
@@ -207,26 +214,28 @@ function parsearHoraInicio(horaStr) {
  */
 function obtenerFechaHoraInicio(ev) {
   if (!ev) return null;
-  let anio = ev.anio !== undefined ? ev.anio : null;
-  let mes = ev.mes !== undefined ? ev.mes : null;
-  let diaNum = ev.diaNum !== undefined ? ev.diaNum : null;
+  let anio = (ev.anio !== undefined && ev.anio !== null) ? ev.anio : null;
+  let mes = (ev.mes !== undefined && ev.mes !== null) ? ev.mes : null;
+  let diaNum = (ev.diaNum !== undefined && ev.diaNum !== null) ? ev.diaNum : null;
 
-  if (ev.fechaEvento) {
-    const f = new Date(ev.fechaEvento);
-    if (!isNaN(f.getTime())) {
-      anio = f.getFullYear();
-      mes = f.getMonth();
-      diaNum = f.getDate();
+  // 1. Si ev.dia tiene fecha (ej. "7 de noviembre de 2026"), usarla preferentemente
+  if (ev.dia) {
+    const parsed = parsearFechaEspanol(ev.dia, ev.hora || '', ev.createdAt ? new Date(ev.createdAt) : new Date());
+    if (parsed && parsed.esExacta) {
+      if (diaNum === null) diaNum = parsed.dia;
+      if (mes === null) mes = parsed.mes;
+      if (anio === null) anio = parsed.anio;
     }
   }
 
+  // 2. Si aún falta día/mes/año, extraer de fechaEvento
   if (anio === null || mes === null || diaNum === null) {
-    if (ev.dia) {
-      const parsed = parsearFechaEspanol(ev.dia, ev.hora || '', ev.createdAt ? new Date(ev.createdAt) : new Date());
-      if (parsed && parsed.esExacta) {
-        anio = parsed.anio;
-        mes = parsed.mes;
-        diaNum = parsed.dia;
+    if (ev.fechaEvento) {
+      const f = new Date(ev.fechaEvento);
+      if (!isNaN(f.getTime())) {
+        if (anio === null) anio = f.getFullYear();
+        if (mes === null) mes = f.getMonth();
+        if (diaNum === null) diaNum = f.getDate();
       }
     }
   }
@@ -234,12 +243,17 @@ function obtenerFechaHoraInicio(ev) {
   if (anio === null && diaNum) {
     const base = ev.createdAt ? new Date(ev.createdAt) : new Date();
     anio = base.getFullYear();
-    mes = base.getMonth();
+    if (mes === null) mes = base.getMonth();
   }
 
   if (anio !== null && mes !== null && diaNum !== null) {
-    const { horas, minutos } = parsearHoraInicio(ev.hora);
-    return new Date(anio, mes, diaNum, horas, minutos, 0, 0);
+    const { horas, minutos } = parsearHoraInicio(ev.hora || '');
+    return new Date(anio, mes, diaNum, horas, minutos, 0);
+  }
+
+  if (ev.fechaEvento) {
+    const f = new Date(ev.fechaEvento);
+    if (!isNaN(f.getTime())) return f;
   }
 
   return null;

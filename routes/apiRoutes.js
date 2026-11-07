@@ -491,6 +491,12 @@ router.post('/events', async (req, res) => {
         }
       }
 
+      // No permitir registrar eventos con fecha que ya ha pasado
+      const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate(), 0, 0, 0);
+      if (fechaEvento && fechaEvento < inicioHoy) {
+        return res.status(400).json({ ok: false, error: 'No se pueden registrar eventos en fechas que ya han pasado.' });
+      }
+
       evento = await Event.create({
         titulo: finalTitulo,
         dia: dia,

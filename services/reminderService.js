@@ -27,6 +27,14 @@ function iniciarServicioRecordatorios(io) {
       const hoyInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 0, 0, 0);
       const hoyFin = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 59, 59);
 
+      // Limpiar automáticamente de la base de datos eventos de días que ya pasaron
+      await Event.deleteMany({
+        $or: [
+          { fechaEvento: { $lt: hoyInicio } },
+          { fechaExpiracion: { $lt: ahora } }
+        ]
+      });
+
       // Eventos programados para hoy que no hayan sido notificados
       const eventos = await Event.find({
         fechaEvento: { $gte: hoyInicio, $lte: hoyFin },

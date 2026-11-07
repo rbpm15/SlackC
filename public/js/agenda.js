@@ -248,10 +248,47 @@ function obtenerTimestampEvento(ev) {
 const _recordatoriosNotificados = new Set();
 
 /**
+ * Elimina automáticamente de la vista tarjetas de eventos cuya fecha ya haya pasado (días anteriores a hoy).
+ */
+function purgarEventosPasados() {
+  if (!AgendaModule.cachedEvents || AgendaModule.cachedEvents.length === 0) return;
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  let cambios = false;
+
+  AgendaModule.cachedEvents = AgendaModule.cachedEvents.filter(ev => {
+    let finDelDia = null;
+    let anio = ev.anio;
+    let mes = ev.mes;
+    let diaNum = ev.diaNum;
+
+    if (diaNum && mes !== null && mes !== undefined && anio) {
+      finDelDia = new Date(anio, mes, diaNum, 23, 59, 59);
+    } else if (ev.fechaEvento) {
+      finDelDia = new Date(ev.fechaEvento);
+    }
+
+    if (finDelDia && finDelDia < hoy) {
+      const card = document.getElementById(`ev-${ev.id || ev._id}`);
+      if (card) card.remove();
+      cambios = true;
+      return false;
+    }
+    return true;
+  });
+
+  if (cambios) {
+    AgendaModule.recalcularMarcadoresCalendario();
+    actualizarContador();
+  }
+}
+
+/**
  * Verificador periódico en el cliente para disparar la alerta cuando
  * el reloj del sistema alcance la fecha y hora exacta del evento.
  */
 function verificarRecordatoriosLocales() {
+  purgarEventosPasados();
   if (!AgendaModule.cachedEvents || AgendaModule.cachedEvents.length === 0) return;
   const ahora = Date.now();
 
@@ -735,12 +772,14 @@ const AgendaModule = {
     document.getElementById('newEventDesc').value = '';
     
     const dateInput = document.getElementById('newEventDate');
-    if (this.selectedDate) {
+    const hoyObj = new Date();
+    const hoyStr = `${hoyObj.getFullYear()}-${String(hoyObj.getMonth() + 1).padStart(2, '0')}-${String(hoyObj.getDate()).padStart(2, '0')}`;
+    dateInput.min = hoyStr;
+
+    if (this.selectedDate && this.selectedDate >= hoyStr) {
       dateInput.value = this.selectedDate;
     } else {
-      const mesStr = (this.currentMonth + 1).toString().padStart(2, '0');
-      const dStr = new Date().getDate().toString().padStart(2, '0'); // might be invalid if month has fewer days, but ok for default
-      dateInput.value = `${this.currentYear}-${mesStr}-${dStr}`;
+      dateInput.value = hoyStr;
     }
     
     modal.style.display = 'flex';
@@ -765,6 +804,15 @@ const AgendaModule = {
     const diaNum = parseInt(fecha.split('-')[2], 10);
     const mesNum = parseInt(fecha.split('-')[1], 10) - 1; // 0-indexed
     const anioNum = parseInt(fecha.split('-')[0], 10);
+
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const finDiaSel = new Date(anioNum, mesNum, diaNum, 23, 59, 59);
+    if (finDiaSel < hoy) {
+      alert('La fecha seleccionada ya ha pasado. Por favor selecciona hoy o una fecha futura.');
+      return;
+    }
+
     const autor  = document.getElementById('profileNameDisplay')?.textContent || 'Usuario';
     const MESES_NOMBRES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 

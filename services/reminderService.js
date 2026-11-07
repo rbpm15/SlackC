@@ -7,7 +7,7 @@
  */
 
 const Event = require('../models/Event');
-const { obtenerFechaHoraInicio } = require('./dateUtils');
+const { obtenerFechaHoraInicio, crearFechaMexico } = require('./dateUtils');
 
 let _intervalId = null;
 
@@ -23,9 +23,21 @@ function iniciarServicioRecordatorios(io) {
   async function verificar() {
     try {
       const ahora = new Date();
-      // Ventana de hoy completo
-      const hoyInicio = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 0, 0, 0);
-      const hoyFin = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate(), 23, 59, 59);
+      // Ventana de hoy completo en horario de México
+      const mxParts = new Intl.DateTimeFormat('en-US', {
+        timeZone: 'America/Mexico_City',
+        year: 'numeric',
+        month: 'numeric',
+        day: 'numeric'
+      }).formatToParts(ahora);
+      const map = {};
+      mxParts.forEach(p => map[p.type] = p.value);
+      const y = parseInt(map.year, 10);
+      const m = parseInt(map.month, 10) - 1;
+      const d = parseInt(map.day, 10);
+
+      const hoyInicio = crearFechaMexico(y, m, d, 0, 0, 0);
+      const hoyFin = crearFechaMexico(y, m, d, 23, 59, 59);
 
       // Limpiar automáticamente de la base de datos eventos de días que ya pasaron
       await Event.deleteMany({

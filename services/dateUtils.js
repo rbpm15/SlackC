@@ -35,6 +35,21 @@ const DIAS_SEMANA = {
 };
 
 /**
+ * Crea un objeto Date correspondiente exactamente a la fecha y hora en la
+ * zona horaria de México (America/Mexico_City, UTC-6).
+ * Es determinista y funciona idéntico tanto en servidores UTC (como Render) como locales.
+ * @param {number} anio - Año (ej. 2026)
+ * @param {number} mes - Mes 0-indexado (0 = enero ... 10 = noviembre)
+ * @param {number} dia - Día del mes (1-31)
+ * @param {number} horas - Horas (0-23)
+ * @param {number} minutos - Minutos (0-59)
+ * @param {number} segundos - Segundos (0-59)
+ */
+function crearFechaMexico(anio, mes, dia, horas = 12, minutos = 0, segundos = 0) {
+  return new Date(Date.UTC(anio, mes, dia, horas + 6, minutos, segundos));
+}
+
+/**
  * Parsea un texto con fecha en español.
  * @param {string} textoFecha - ej. "24 de julio de 2026", "24 de julio", "mañana", "Día 23"
  * @param {string} horaTexto - ej. "15:00 hrs", "3:30 pm"
@@ -67,7 +82,7 @@ function parsearFechaEspanol(textoFecha, horaTexto = '', baseDate = new Date(), 
 
     // Si no especificó año y es para agendar un nuevo evento:
     if (!matchMes[3] && esParaNuevo) {
-      const dCheck = new Date(anio, mes, dia, 23, 59, 59);
+      const dCheck = crearFechaMexico(anio, mes, dia, 23, 59, 59);
       if (dCheck < baseDate) {
         anio += 1; // Asumir el próximo año
       }
@@ -82,7 +97,7 @@ function parsearFechaEspanol(textoFecha, horaTexto = '', baseDate = new Date(), 
     mes = parseInt(matchNum[2], 10) - 1;
     anio = matchNum[3] ? parseInt(matchNum[3], 10) : baseDate.getFullYear();
     if (!matchNum[3] && esParaNuevo) {
-      const dCheck = new Date(anio, mes, dia, 23, 59, 59);
+      const dCheck = crearFechaMexico(anio, mes, dia, 23, 59, 59);
       if (dCheck < baseDate) anio += 1;
     }
     return { dia, mes, anio, esExacta: true };
@@ -124,7 +139,7 @@ function parsearFechaEspanol(textoFecha, horaTexto = '', baseDate = new Date(), 
     mes = baseDate.getMonth();
     anio = baseDate.getFullYear();
     if (esParaNuevo) {
-      const dCheck = new Date(anio, mes, dia, 23, 59, 59);
+      const dCheck = crearFechaMexico(anio, mes, dia, 23, 59, 59);
       if (dCheck < baseDate) {
         mes += 1;
         if (mes > 11) { mes = 0; anio += 1; }
@@ -148,7 +163,7 @@ function parsearFechaEspanol(textoFecha, horaTexto = '', baseDate = new Date(), 
     mes = baseDate.getMonth();
     anio = baseDate.getFullYear();
     if (esParaNuevo) {
-      const dCheck = new Date(anio, mes, dia, 23, 59, 59);
+      const dCheck = crearFechaMexico(anio, mes, dia, 23, 59, 59);
       if (dCheck < baseDate) {
         mes += 1;
         if (mes > 11) { mes = 0; anio += 1; }
@@ -169,7 +184,7 @@ function calcularFechaEvento(textoFecha, horaTexto = '', baseDate = new Date(), 
 
   if (parsed.esExacta) {
     const { horas, minutos } = parsearHoraInicio(horaTexto);
-    const fecha = new Date(parsed.anio, parsed.mes, parsed.dia, horas, minutos, 0);
+    const fecha = crearFechaMexico(parsed.anio, parsed.mes, parsed.dia, horas, minutos, 0);
     return {
       fechaEvento: fecha,
       fechaExpiracion: null,
@@ -248,7 +263,7 @@ function obtenerFechaHoraInicio(ev) {
 
   if (anio !== null && mes !== null && diaNum !== null) {
     const { horas, minutos } = parsearHoraInicio(ev.hora || '');
-    return new Date(anio, mes, diaNum, horas, minutos, 0);
+    return crearFechaMexico(anio, mes, diaNum, horas, minutos, 0);
   }
 
   if (ev.fechaEvento) {
@@ -262,6 +277,7 @@ function obtenerFechaHoraInicio(ev) {
 module.exports = {
   MESES,
   DIAS_SEMANA,
+  crearFechaMexico,
   parsearFechaEspanol,
   calcularFechaEvento,
   parsearHoraInicio,

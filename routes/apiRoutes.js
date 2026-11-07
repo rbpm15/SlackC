@@ -568,13 +568,13 @@ router.post('/events', async (req, res) => {
       }
 
       if (!fechaEvento && !fechaExpiracion && finalDiaNum) {
-        const { parsearHoraInicio } = require('../services/dateUtils');
+        const { parsearHoraInicio, crearFechaMexico } = require('../services/dateUtils');
         const { horas, minutos } = parsearHoraInicio(hora || '');
         let m = finalMes !== null ? finalMes : hoy.getMonth();
         let a = finalAnio || hoy.getFullYear();
-        fechaEvento = new Date(a, m, finalDiaNum, horas, minutos, 0);
+        fechaEvento = crearFechaMexico(a, m, finalDiaNum, horas, minutos, 0);
         if (fechaEvento < hoy) {
-          fechaEvento = new Date(a, m + 1, finalDiaNum, horas, minutos, 0);
+          fechaEvento = crearFechaMexico(a, m + 1, finalDiaNum, horas, minutos, 0);
         }
       }
 
@@ -641,73 +641,17 @@ router.patch('/events/:id', async (req, res) => {
 router.delete('/events/:id', async (req, res) => {
   try {
     const id = req.params.id;
+    const { deleteGoogleCalendarEvent } = require('../services/googleCalendar');
+
     if (id.startsWith('gcal-')) {
-      const realGcalId = id.replace('gcal-', '');
-      // Borrar de Google Calendar directamente
-      try {
-        const { google } = require('googleapis');
-        const fs = require('fs');
-        const path = require('path');
-        const CREDENTIALS_PATH = path.join(__dirname, '../config/credentials.json');
-        
-        let authClient = null;
-        if (fs.existsSync(CREDENTIALS_PATH)) {
-          authClient = new google.auth.GoogleAuth({
-            keyFile: CREDENTIALS_PATH,
-            scopes: ['https://www.googleapis.com/auth/calendar.events'],
-          });
-        } else if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-          authClient = new google.auth.GoogleAuth({
-            credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
-            scopes: ['https://www.googleapis.com/auth/calendar.events'],
-          });
-        }
-        
-        if (authClient) {
-          const calendar = google.calendar({ version: 'v3', auth: authClient });
-          await calendar.events.delete({
-            calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
-            eventId: realGcalId
-          });
-          console.log('[Google Calendar] Evento eliminado:', realGcalId);
-        }
-      } catch (gcalErr) {
-        console.error('[Google Calendar] Error eliminando evento:', gcalErr.message);
-      }
+      await deleteGoogleCalendarEvent(id);
       return res.json({ ok: true });
     }
 
     const ev = await Event.findById(id);
     if (ev) {
       if (ev.gcalEventId) {
-        try {
-          const { google } = require('googleapis');
-          const fs = require('fs');
-          const path = require('path');
-          const CREDENTIALS_PATH = path.join(__dirname, '../config/credentials.json');
-          
-          let authClient = null;
-          if (fs.existsSync(CREDENTIALS_PATH)) {
-            authClient = new google.auth.GoogleAuth({
-              keyFile: CREDENTIALS_PATH,
-              scopes: ['https://www.googleapis.com/auth/calendar.events'],
-            });
-          } else if (process.env.GOOGLE_SERVICE_ACCOUNT_JSON) {
-            authClient = new google.auth.GoogleAuth({
-              credentials: JSON.parse(process.env.GOOGLE_SERVICE_ACCOUNT_JSON),
-              scopes: ['https://www.googleapis.com/auth/calendar.events'],
-            });
-          }
-          if (authClient) {
-            const calendar = google.calendar({ version: 'v3', auth: authClient });
-            await calendar.events.delete({
-              calendarId: process.env.GOOGLE_CALENDAR_ID || 'primary',
-              eventId: ev.gcalEventId
-            });
-          }
-        } catch (e) {
-          console.error('[Google Calendar] Error borrando sincronizado:', e.message);
-        }
+        await deleteGoogleCalendarEvent(ev.gcalEventId);
       }
       await ev.deleteOne();
     }

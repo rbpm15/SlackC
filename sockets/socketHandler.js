@@ -183,12 +183,12 @@ function socketHandler(io) {
             let finalMes = (cita.mes !== undefined && cita.mes !== null) ? Number(cita.mes) : null;
             let finalAnio = (cita.anio !== undefined && cita.anio !== null) ? Number(cita.anio) : null;
             const hoy = new Date();
-            const { parsearHoraInicio } = require('../services/dateUtils');
+            const { parsearHoraInicio, crearFechaMexico } = require('../services/dateUtils');
             const { horas, minutos } = parsearHoraInicio(cita.hora || '');
 
             if (cita.fechaISO) {
               const [y, m, d] = cita.fechaISO.split('-').map(Number);
-              fechaEvento = new Date(y, m - 1, d, horas, minutos, 0);
+              fechaEvento = crearFechaMexico(y, m - 1, d, horas, minutos, 0);
               finalAnio = y;
               finalMes = m - 1;
               finalDiaNum = d;
@@ -205,9 +205,9 @@ function socketHandler(io) {
               if (finalDiaNum) {
                 let m = finalMes !== null ? finalMes : hoy.getMonth();
                 let a = finalAnio || hoy.getFullYear();
-                fechaEvento = new Date(a, m, finalDiaNum, horas, minutos, 0);
+                fechaEvento = crearFechaMexico(a, m, finalDiaNum, horas, minutos, 0);
                 if (fechaEvento < hoy) {
-                  fechaEvento = new Date(a, m + 1, finalDiaNum, horas, minutos, 0);
+                  fechaEvento = crearFechaMexico(a, m + 1, finalDiaNum, horas, minutos, 0);
                   finalMes = m + 1;
                 }
               } else {

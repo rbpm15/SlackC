@@ -12,6 +12,7 @@ const { Server }   = require('socket.io');
 const { conectarDB }    = require('./config/db');
 const apiRoutes         = require('./routes/apiRoutes');
 const { socketHandler } = require('./sockets/socketHandler');
+const { iniciarServicioRecordatorios } = require('./services/reminderService');
 
 // ─── Express ──────────────────────────────────────────────────
 const app    = express();
@@ -83,6 +84,7 @@ const PORT = process.env.PORT || 3000;
 
 (async () => {
   await conectarDB();          // primero BD, luego servidor
+  iniciarServicioRecordatorios(io); // servicio de alarmas y notificaciones
   server.listen(PORT, () => {
     console.log(`🚀 Servidor escuchando en http://localhost:${PORT}`);
   });

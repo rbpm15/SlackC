@@ -157,6 +157,21 @@ const OfflineDB = (() => {
     });
   }
 
+  /** Sincroniza y reemplaza la lista de eventos locales con los válidos del servidor */
+  async function syncEvents(events = []) {
+    await init();
+    const store = _tx('events', 'readwrite');
+    await _req(store.clear());
+    for (const ev of events) {
+      const id = (ev._id || ev.id || '').toString();
+      if (id) store.put({ ...ev, _id: id });
+    }
+    return new Promise((resolve, reject) => {
+      store.transaction.oncomplete = resolve;
+      store.transaction.onerror    = (e) => reject(e.target.error);
+    });
+  }
+
   /** Lee todos los eventos locales */
   async function getEvents() {
     await init();
@@ -264,6 +279,7 @@ const OfflineDB = (() => {
     deleteMessage,
     // Eventos
     saveEvents,
+    syncEvents,
     getEvents,
     deleteEvent,
     // Canales

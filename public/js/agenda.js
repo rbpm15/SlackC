@@ -29,6 +29,53 @@ const agendaDateEl  = document.getElementById('agendaDate');
 })();
 
 /* ════════════════════════════════════════════════════════════════
+   UTILIDADES DE FECHAS EN ESPAÑOL
+════════════════════════════════════════════════════════════════ */
+const MESES_MAP = {
+  enero: 0, febrero: 1, marzo: 2, abril: 3, mayo: 4, junio: 5,
+  julio: 6, agosto: 7, septiembre: 8, setiembre: 8, octubre: 9,
+  noviembre: 10, diciembre: 11
+};
+
+function parsearFechaTexto(textoFecha, baseDate = new Date()) {
+  if (!textoFecha || typeof textoFecha !== 'string') return null;
+  const texto = textoFecha.toLowerCase().trim();
+
+  // 1. ISO YYYY-MM-DD
+  const matchISO = texto.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);
+  if (matchISO) {
+    return { anio: parseInt(matchISO[1], 10), mes: parseInt(matchISO[2], 10) - 1, dia: parseInt(matchISO[3], 10) };
+  }
+
+  // 2. "24 de julio de 2026" o "24 de julio"
+  const matchMes = texto.match(/(\d{1,2})\s+(?:de\s+)?(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+(?:de|del)?\s*(\d{4}))?/i);
+  if (matchMes) {
+    const dia = parseInt(matchMes[1], 10);
+    const mes = MESES_MAP[matchMes[2].toLowerCase()];
+    const anio = matchMes[3] ? parseInt(matchMes[3], 10) : baseDate.getFullYear();
+    return { dia, mes, anio };
+  }
+
+  // 3. "24/07/2026" o "24/07"
+  const matchNum = texto.match(/(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{4}))?/);
+  if (matchNum) {
+    return {
+      dia: parseInt(matchNum[1], 10),
+      mes: parseInt(matchNum[2], 10) - 1,
+      anio: matchNum[3] ? parseInt(matchNum[3], 10) : baseDate.getFullYear()
+    };
+  }
+
+  // 4. "Día 23"
+  const matchDia = texto.match(/(?:día|dia)\s*(\d{1,2})\b/i);
+  if (matchDia) {
+    return { dia: parseInt(matchDia[1], 10), mes: baseDate.getMonth(), anio: baseDate.getFullYear() };
+  }
+
+  return null;
+}
+
+/* ════════════════════════════════════════════════════════════════
    MINI CALENDARIO (estado vacío profesional y navegación)
 ════════════════════════════════════════════════════════════════ */
 function crearMiniCalendarioHtml() {
@@ -131,8 +178,114 @@ function actualizarContador() {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   RENDERIZAR TARJETA DE EVENTO
+   ORDENAMIENTO Y RENDERIZADO DE TARJETAS DE EVENTO
 ════════════════════════════════════════════════════════════════ */
+
+/**
+ * Calcula el timestamp exacto de un evento para ordenamiento cronológico.
+ * Eventos más próximos tienen un timestamp menor.
+ */
+function obtenerTimestampEvento(ev) {
+  let anio = ev.anio;
+  let mes = ev.mes;
+  let diaNum = ev.diaNum;
+
+  if (ev.fechaEvento) {
+    const f = new Date(ev.fechaEvento);
+    if (!isNaN(f.getTime())) {
+      anio = f.getFullYear();
+      mes = f.getMonth();
+      diaNum = f.getDate();
+    }
+  }
+
+  let horas = 9;
+  let minutos = 0;
+
+  if (ev.hora) {
+    const matchHora = ev.hora.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    if (matchHora) {
+      horas = parseInt(matchHora[1], 10);
+      minutos = matchHora[2] ? parseInt(matchHora[2], 10) : 0;
+      const meridian = matchHora[3]?.toLowerCase();
+      if (meridian === 'pm' && horas < 12) horas += 12;
+      if (meridian === 'am' && horas === 12) horas = 0;
+    }
+  }
+
+  if (diaNum && mes !== null && mes !== undefined && anio) {
+    return new Date(anio, mes, diaNum, horas, minutos, 0).getTime();
+  }
+
+  if (ev.fechaExpiracion) {
+    const f = new Date(ev.fechaExpiracion);
+    if (!isNaN(f.getTime())) return f.getTime();
+  }
+
+  if (ev.createdAt) {
+    return new Date(ev.createdAt).getTime() + 7 * 24 * 60 * 60 * 1000;
+  }
+
+  return Number.MAX_SAFE_INTEGER;
+}
+
+const _recordatoriosNotificados = new Set();
+
+/**
+ * Verificador periódico en el cliente para disparar la alerta cuando
+ * el reloj del sistema alcance la fecha y hora exacta del evento.
+ */
+function verificarRecordatoriosLocales() {
+  if (!AgendaModule.cachedEvents || AgendaModule.cachedEvents.length === 0) return;
+  const ahora = Date.now();
+
+  AgendaModule.cachedEvents.forEach(ev => {
+    const id = (ev.id || ev._id || '').toString();
+    if (!id || _recordatoriosNotificados.has(id)) return;
+
+    const ts = obtenerTimestampEvento(ev);
+    if (!ts || ts === Number.MAX_SAFE_INTEGER) return;
+
+    const diff = ahora - ts;
+    // Dispara si estamos en la ventana exacta (entre 0 y 90 segundos desde el inicio)
+    if (diff >= 0 && diff <= 90 * 1000) {
+      _recordatoriosNotificados.add(id);
+      if (typeof mostrarAlertaEvento === 'function') {
+        mostrarAlertaEvento(ev);
+      }
+    }
+  });
+}
+
+// Revisar cada 20 segundos en segundo plano
+setInterval(verificarRecordatoriosLocales, 20 * 1000);
+
+/**
+ * Inserta la tarjeta en la posición ordenada:
+ * del evento más reciente/próximo al que tarde más.
+ */
+function insertarTarjetaOrdenada(card, timestamp) {
+  card.dataset.timestamp = timestamp;
+
+  const existingCards = Array.from(agendaBodyEl.querySelectorAll('.event-card'));
+  let inserted = false;
+
+  for (const existing of existingCards) {
+    if (existing === card) continue;
+    const existingTs = parseInt(existing.dataset.timestamp, 10);
+    const compTs = isNaN(existingTs) ? Number.MAX_SAFE_INTEGER : existingTs;
+    if (timestamp < compTs) {
+      agendaBodyEl.insertBefore(card, existing);
+      inserted = true;
+      break;
+    }
+  }
+
+  if (!inserted) {
+    agendaBodyEl.appendChild(card);
+  }
+}
+
 function renderizarEvento(evento, animado = true) {
   const evId = `ev-${evento.id}`;
   const horaCreado = new Date(evento.createdAt || Date.now()).toLocaleTimeString('es-MX', {
@@ -175,10 +328,16 @@ function renderizarEvento(evento, animado = true) {
     <div class="event-card-footer">Actualizado a las ${horaCreado}</div>
   `;
 
+  const timestamp = obtenerTimestampEvento(evento);
+
   let card = document.getElementById(evId);
   if (card) {
-    // Actualizar tarjeta existente
+    // Actualizar tarjeta existente y recolocar en orden
     card.innerHTML = cardHtml;
+    card.dataset.diaNum = (evento.diaNum !== undefined && evento.diaNum !== null) ? evento.diaNum : '';
+    card.dataset.mes = (evento.mes !== undefined && evento.mes !== null) ? evento.mes : '';
+    card.dataset.anio = (evento.anio !== undefined && evento.anio !== null) ? evento.anio : '';
+    insertarTarjetaOrdenada(card, timestamp);
     if (animado) {
       card.classList.add('flash-new');
       setTimeout(() => card.classList.remove('flash-new'), 2000);
@@ -189,12 +348,12 @@ function renderizarEvento(evento, animado = true) {
   card = document.createElement('div');
   card.id        = evId;
   card.className = 'event-card' + (animado ? ' anim-slide-right' : '');
-  card.dataset.diaNum = evento.diaNum || '';
-  card.dataset.mes = evento.mes || '';
-  card.dataset.anio = evento.anio || '';
+  card.dataset.diaNum = (evento.diaNum !== undefined && evento.diaNum !== null) ? evento.diaNum : '';
+  card.dataset.mes = (evento.mes !== undefined && evento.mes !== null) ? evento.mes : '';
+  card.dataset.anio = (evento.anio !== undefined && evento.anio !== null) ? evento.anio : '';
   card.innerHTML = cardHtml;
 
-  agendaBodyEl.appendChild(card);
+  insertarTarjetaOrdenada(card, timestamp);
   actualizarContador();
 
   // Marcar punto en el calendario si tenemos día numérico y corresponde al mes actual en vista
@@ -284,10 +443,10 @@ const AgendaModule = {
     document.querySelectorAll('.event-indicator').forEach(i => i.remove());
     // Añadir puntos para los eventos que apliquen
     document.querySelectorAll('.event-card').forEach(c => {
-      const d = parseInt(c.dataset.diaNum);
-      const m = parseInt(c.dataset.mes);
-      const a = parseInt(c.dataset.anio);
-      if (d && m === this.currentMonth && a === this.currentYear) {
+      const d = parseInt(c.dataset.diaNum, 10);
+      const m = parseInt(c.dataset.mes, 10);
+      const a = parseInt(c.dataset.anio, 10);
+      if (!isNaN(d) && !isNaN(m) && !isNaN(a) && m === this.currentMonth && a === this.currentYear) {
         const cell = document.getElementById(`cal-day-${d}`);
         if (cell && !cell.querySelector('.event-indicator')) {
           cell.innerHTML += `<div class="event-indicator"></div>`;
@@ -298,16 +457,45 @@ const AgendaModule = {
 
   /** Llamado por app.js cuando el servidor confirma un evento via socket */
   async recibirEventoSocket(ev) {
+    const hoy = new Date();
+    hoy.setHours(0,0,0,0);
+
+    let fechaReal = ev.fechaEvento ? new Date(ev.fechaEvento) : null;
+    let mesEv = null;
+    let anioEv = null;
+    let diaNumEv = ev.diaNum || null;
+
+    if (fechaReal) {
+      mesEv = fechaReal.getMonth();
+      anioEv = fechaReal.getFullYear();
+      diaNumEv = fechaReal.getDate();
+    } else if (ev.dia) {
+      const parsed = parsearFechaTexto(ev.dia, hoy);
+      if (parsed) {
+        mesEv = parsed.mes;
+        anioEv = parsed.anio;
+        diaNumEv = parsed.dia;
+        fechaReal = new Date(parsed.anio, parsed.mes, parsed.dia, 23, 59, 59);
+      }
+    }
+
+    // Si la fecha ya pasó, no agregar como evento futuro
+    if (fechaReal && fechaReal < hoy) return;
+
+    if (mesEv === null) mesEv = this.currentMonth;
+    if (anioEv === null) anioEv = this.currentYear;
+
     const evento = {
       id:        ev._id || ev.id,
       titulo:    ev.titulo,
       dia:       ev.dia,
-      diaNum:    ev.diaNum,
-      mes:       ev.fechaEvento ? new Date(ev.fechaEvento).getMonth() : this.currentMonth,
-      anio:      ev.fechaEvento ? new Date(ev.fechaEvento).getFullYear() : this.currentYear,
+      diaNum:    diaNumEv,
+      mes:       mesEv,
+      anio:      anioEv,
       hora:      ev.hora,
       autor:     ev.autor || '',
       fuente:    ev.fuente || 'local',
+      fechaEvento: fechaReal ? fechaReal.toISOString() : (ev.fechaEvento || null),
       createdAt: ev.createdAt || new Date().toISOString(),
     };
 
@@ -318,6 +506,7 @@ const AgendaModule = {
     }
 
     this.cachedEvents.push(evento);
+    this.cachedEvents.sort((a, b) => obtenerTimestampEvento(a) - obtenerTimestampEvento(b));
     renderizarEvento(evento, true);
   },
 
@@ -328,56 +517,72 @@ const AgendaModule = {
     
     this.cachedEvents = [];
     
-    [...eventos].reverse().forEach(ev => {
-      // Determinar la fecha real del evento
+    // Limpiar tarjetas de eventos existentes para evitar duplicados u obsoletos
+    agendaBodyEl.querySelectorAll('.event-card').forEach(c => c.remove());
+
+    const eventosValidos = [];
+
+    eventos.forEach(ev => {
       let fechaReal = ev.fechaEvento ? new Date(ev.fechaEvento) : null;
-      let mesEv = fechaReal ? fechaReal.getMonth() : this.currentMonth;
-      let anioEv = fechaReal ? fechaReal.getFullYear() : this.currentYear;
-      
-      let num = ev.diaNum;
-      if (!num && ev.dia) {
-        const match = ev.dia.match(/(\d+)/);
-        if (match) num = parseInt(match[1]);
-      }
+      let mesEv = null;
+      let anioEv = null;
+      let diaNumEv = ev.diaNum || null;
 
-      // Si no hay fechaEvento pero sí diaNum (o lo sacamos del texto), intentar adivinar basados en currentMonth
-      if (!fechaReal && num) {
-        fechaReal = new Date(this.currentYear, this.currentMonth, num, 23, 59, 59);
-        // Sin embargo, si es un evento MUY viejo que no tiene fechaEvento y es del pasado, lo saltamos
-        if (fechaReal < hoy) {
-            return; // Skip ev dates already past
-        }
-      } else if (!fechaReal && !num) {
-        // Evento sin fecha clara (ej. "Hoy", "La otra semana")
-        // Si el texto dice "Hoy" o similar pero ya pasaron días desde que se creó... 
-        // Mejor intentar usar createdAt
-        if (ev.createdAt) {
-           const created = new Date(ev.createdAt);
-           // Si se creó antes de hoy, ya es viejo, no mostrar
-           created.setHours(0,0,0,0);
-           if (created < hoy) return;
+      if (fechaReal) {
+        mesEv = fechaReal.getMonth();
+        anioEv = fechaReal.getFullYear();
+        diaNumEv = fechaReal.getDate();
+      } else if (ev.dia) {
+        const parsed = parsearFechaTexto(ev.dia, ev.createdAt ? new Date(ev.createdAt) : hoy);
+        if (parsed) {
+          mesEv = parsed.mes;
+          anioEv = parsed.anio;
+          diaNumEv = parsed.dia;
+          fechaReal = new Date(parsed.anio, parsed.mes, parsed.dia, 23, 59, 59);
         }
       }
 
-      // Skip past events entirely for a cleaner UI if they were loaded
+      if (!fechaReal && diaNumEv) {
+        const baseDate = ev.createdAt ? new Date(ev.createdAt) : hoy;
+        mesEv = baseDate.getMonth();
+        anioEv = baseDate.getFullYear();
+        fechaReal = new Date(anioEv, mesEv, diaNumEv, 23, 59, 59);
+      }
+
+      // Si la fecha ya pasó, descartar de próximos eventos
       if (fechaReal && fechaReal < hoy) return;
+
+      if (mesEv === null) mesEv = this.currentMonth;
+      if (anioEv === null) anioEv = this.currentYear;
 
       const evtFormat = {
         id:        ev._id || ev.id,
         titulo:    ev.titulo,
         dia:       ev.dia,
-        diaNum:    num || ev.diaNum,
+        diaNum:    diaNumEv,
         mes:       mesEv,
         anio:      anioEv,
         hora:      ev.hora,
         autor:     ev.autor || '',
         fuente:    ev.fuente || 'local',
+        fechaEvento: fechaReal ? fechaReal.toISOString() : (ev.fechaEvento || null),
         createdAt: ev.createdAt,
       };
       
-      this.cachedEvents.push(evtFormat);
+      eventosValidos.push(evtFormat);
+    });
+
+    // Ordenar de más cercano/próximo al que tarde más
+    eventosValidos.sort((a, b) => obtenerTimestampEvento(a) - obtenerTimestampEvento(b));
+
+    this.cachedEvents = eventosValidos;
+
+    eventosValidos.forEach(evtFormat => {
       renderizarEvento(evtFormat, false);
     });
+
+    this.recalcularMarcadoresCalendario();
+    actualizarContador();
   },
 
   /** Eliminar tarjeta del DOM y DB */
@@ -467,7 +672,10 @@ const AgendaModule = {
       cell.classList.add('selected-day');
       let visibles = 0;
       cards.forEach(c => {
-        if (c.dataset.diaNum == diaNum && parseInt(c.dataset.mes) === this.currentMonth && parseInt(c.dataset.anio) === this.currentYear) {
+        const d = parseInt(c.dataset.diaNum, 10);
+        const m = parseInt(c.dataset.mes, 10);
+        const a = parseInt(c.dataset.anio, 10);
+        if (d === diaNum && m === this.currentMonth && a === this.currentYear) {
           c.style.display = 'block';
           visibles++;
         } else {
@@ -533,16 +741,17 @@ const AgendaModule = {
     const mesNum = parseInt(fecha.split('-')[1], 10) - 1; // 0-indexed
     const anioNum = parseInt(fecha.split('-')[0], 10);
     const autor  = document.getElementById('profileNameDisplay')?.textContent || 'Usuario';
+    const MESES_NOMBRES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
 
     const evt = {
       titulo,
-      dia:    `Día ${diaNum}`,
+      dia:    `${diaNum} de ${MESES_NOMBRES[mesNum]} de ${anioNum}`,
       diaNum,
       hora,
       autor,
       fuente: 'manual',
       desc,
-      fechaEvento: new Date(anioNum, mesNum, diaNum, 12, 0, 0).toISOString(),
+      fechaEvento: new Date(anioNum, mesNum, diaNum, 23, 59, 59).toISOString(),
     };
 
     // Generar id temporal para optimistic update

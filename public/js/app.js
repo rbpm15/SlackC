@@ -138,13 +138,42 @@ document.getElementById('nameInput').addEventListener('keydown', e => {
 });
 
 /* ════════════════════════════════════════════════════════════════
-   NOTIFICACIONES DE ESCRITORIO
+   NOTIFICACIONES DE ESCRITORIO Y ALERTAS SONORAS
 ════════════════════════════════════════════════════════════════ */
 function initNotifications() {
   if ("Notification" in window) {
     if (Notification.permission !== "granted" && Notification.permission !== "denied") {
-      Notification.requestPermission();
+      const pedir = () => {
+        Notification.requestPermission();
+        document.removeEventListener('click', pedir);
+      };
+      document.addEventListener('click', pedir, { once: true });
     }
+  }
+}
+
+function reproducirSonidoChime() {
+  try {
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) return;
+    const ctx = new AudioCtx();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(587.33, ctx.currentTime); // D5
+    osc.frequency.setValueAtTime(880.00, ctx.currentTime + 0.12); // A5
+
+    gain.gain.setValueAtTime(0.25, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.55);
+
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+
+    osc.start();
+    osc.stop(ctx.currentTime + 0.55);
+  } catch (e) {
+    // Autoplay policy silente
   }
 }
 
@@ -159,6 +188,72 @@ function enviarNotificacionDesktop(titulo, cuerpo) {
       }
     });
   }
+}
+
+/**
+ * Dispara una alerta integral cuando llega la fecha y hora de un evento:
+ * Sonido + Notificación de Escritorio + Toast flotante en pantalla + Mensaje en feed.
+ */
+function mostrarAlertaEvento(ev) {
+  if (!ev) return;
+
+  // 1. Sonido chime
+  reproducirSonidoChime();
+
+  // 2. Notificación Desktop
+  const tituloNotif = '🔔 ¡Es hora de tu evento!';
+  const cuerpoNotif = `${ev.titulo || 'Evento agendado'}\n${ev.dia || ''} a las ${ev.hora || ''}`;
+  enviarNotificacionDesktop(tituloNotif, cuerpoNotif);
+
+  // 3. Notificación flotante en la aplicación (In-App Toast)
+  mostrarToastEvento(ev);
+
+  // 4. Mensaje del sistema en el feed de chat
+  if (window.ChatModule && typeof window.ChatModule.renderizarMensajeSistema === 'function') {
+    window.ChatModule.renderizarMensajeSistema(
+      `🔔 ¡RECORDATORIO DE EVENTO! Es hora de: "${ev.titulo}" (${ev.dia} a las ${ev.hora})`
+    );
+  }
+
+  // 5. Destacar tarjeta en la agenda si existe
+  const card = document.getElementById(`ev-${ev.id || ev._id}`);
+  if (card) {
+    card.classList.add('flash-new');
+    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
+function mostrarToastEvento(ev) {
+  const toastId = `toast-ev-${ev.id || ev._id || Date.now()}`;
+  const existente = document.getElementById(toastId);
+  if (existente) return; // Evitar duplicar
+
+  const toast = document.createElement('div');
+  toast.id = toastId;
+  toast.className = 'event-reminder-toast';
+  toast.innerHTML = `
+    <div class="toast-top">
+      <span class="toast-badge">🔔 ¡Es hora de tu evento!</span>
+      <button class="toast-close-btn" onclick="this.closest('.event-reminder-toast').remove()" title="Cerrar">×</button>
+    </div>
+    <div class="toast-title">${escapeHtml(ev.titulo || 'Evento agendado')}</div>
+    <div class="toast-details">
+      <span>📅 ${escapeHtml(ev.dia || '')}</span>
+      <span>🕐 ${escapeHtml(ev.hora || '')}</span>
+    </div>
+  `;
+
+  document.body.appendChild(toast);
+
+  // Auto-cerrar a los 14 segundos
+  setTimeout(() => {
+    if (toast && toast.parentNode) {
+      toast.style.transition = 'opacity 0.35s ease, transform 0.35s ease';
+      toast.style.opacity = '0';
+      toast.style.transform = 'translateX(60px)';
+      setTimeout(() => toast.remove(), 350);
+    }
+  }, 14000);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -613,6 +708,11 @@ socket.on('evento_detectado', (ev) => {
   }
 });
 
+// Recordatorio cuando llega la fecha y hora programada del evento
+socket.on('recordatorio_evento', (ev) => {
+  mostrarAlertaEvento(ev);
+});
+
 // Mensaje eliminado por admin
 socket.on('mensaje_eliminado', (data) => {
   const el = document.getElementById(`msg-${data._id}`);
@@ -754,8 +854,11 @@ async function cargarInicial() {
       if (rEvs.status === 'fulfilled' && rEvs.value.ok) {
         const events = rEvs.value.data;
         AgendaModule.cargarDesdeServidor(events);
-        // Persistir en local para offline
-        if (window.OfflineDB) OfflineDB.saveEvents(events).catch(() => {});
+        // Persistir en local para offline limpiando eventos obsoletos
+        if (window.OfflineDB) {
+          if (OfflineDB.syncEvents) OfflineDB.syncEvents(events).catch(() => {});
+          else OfflineDB.saveEvents(events).catch(() => {});
+        }
       }
 
       // DMs solo si ya tenemos nombre

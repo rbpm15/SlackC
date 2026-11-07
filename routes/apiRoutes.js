@@ -4,6 +4,7 @@ const { Router }    = require('express');
 const Channel       = require('../models/Channel');
 const Message       = require('../models/Message');
 const Event         = require('../models/Event');
+const { calcularFechaEvento, parsearFechaEspanol } = require('../services/dateUtils');
 
 const router = Router();
 
@@ -53,11 +54,12 @@ router.post('/channels', async (req, res) => {
     const { name, description, owner } = req.body;
     if (!name) return res.status(400).json({ ok: false, error: 'El nombre es obligatorio.' });
 
+    const validOwner = (owner && owner.trim() !== '' && owner !== 'Anónimo') ? owner.trim() : (owner || null);
     const canal = await Channel.create({
       name: name.toLowerCase().replace(/\s+/g, '-').slice(0, 30),
       description: description || '',
-      owner: owner || null,
-      users: owner ? [owner] : [],
+      owner: validOwner,
+      users: validOwner ? [validOwner] : [],
     });
 
     res.json({ ok: true, data: canal });
@@ -75,7 +77,12 @@ router.get('/channels/:id/members', async (req, res) => {
   try {
     const channel = await Channel.findById(req.params.id).lean();
     if (!channel) return res.status(404).json({ ok: false, error: 'Canal no encontrado' });
-    res.json({ ok: true, owner: channel.owner || null, users: channel.users || [] });
+    
+    let users = channel.users || [];
+    if (channel.owner && channel.owner !== 'Anónimo' && !users.includes(channel.owner)) {
+      users = [channel.owner, ...users];
+    }
+    res.json({ ok: true, owner: channel.owner || null, users });
   } catch (err) {
     console.error('[API] GET /channels/members:', err.message);
     res.status(500).json({ ok: false, error: 'Error al obtener miembros.' });
@@ -85,38 +92,47 @@ router.get('/channels/:id/members', async (req, res) => {
 // POST /api/channels/:id/members — agregar miembro
 router.post('/channels/:id/members', async (req, res) => {
   try {
-    const { username } = req.body;
-    if (!username) return res.status(400).json({ ok: false, error: 'Falta username' });
+    const username = req.body.username?.trim();
+    if (!username) return res.status(400).json({ ok: false, error: 'Nombre de usuario requerido' });
     
     const channel = await Channel.findById(req.params.id);
-    if (!channel) return res.status(404).json({ ok: false });
+    if (!channel) return res.status(404).json({ ok: false, error: 'Canal no encontrado' });
     
-    if (channel.owner) {
-      if (!channel.users.includes(username)) {
-        channel.users.push(username);
-        await channel.save();
-      }
+    if (!channel.users) channel.users = [];
+    if (!channel.owner || channel.owner === 'Anónimo') {
+      channel.owner = username;
     }
-    res.json({ ok: true, data: channel });
+
+    if (!channel.users.includes(username)) {
+      channel.users.push(username);
+      await channel.save();
+    }
+    res.json({ ok: true, data: channel, users: channel.users, owner: channel.owner });
   } catch (err) {
-    res.status(500).json({ ok: false });
+    console.error('[API] POST /channels/members:', err.message);
+    res.status(500).json({ ok: false, error: 'Error al agregar miembro.' });
   }
 });
 
 // DELETE /api/channels/:id/members/:username — remover miembro
 router.delete('/channels/:id/members/:username', async (req, res) => {
   try {
-    const { username } = req.params;
+    const username = decodeURIComponent(req.params.username).trim();
     const channel = await Channel.findById(req.params.id);
-    if (!channel) return res.status(404).json({ ok: false });
+    if (!channel) return res.status(404).json({ ok: false, error: 'Canal no encontrado' });
     
-    if (channel.owner && channel.owner !== username) { // previene que el creador se elimine a sí mismo
+    if (channel.owner && channel.owner === username) {
+      return res.status(400).json({ ok: false, error: 'No se puede expulsar al creador del canal.' });
+    }
+
+    if (channel.users && channel.users.includes(username)) {
       channel.users = channel.users.filter(u => u !== username);
       await channel.save();
     }
-    res.json({ ok: true, data: channel });
+    res.json({ ok: true, data: channel, users: channel.users, owner: channel.owner });
   } catch (err) {
-    res.status(500).json({ ok: false });
+    console.error('[API] DELETE /channels/members:', err.message);
+    res.status(500).json({ ok: false, error: 'Error al eliminar miembro.' });
   }
 });
 
@@ -331,7 +347,7 @@ router.get('/events', async (req, res) => {
 
     const ahora = new Date();
 
-    // Eliminar eventos pasados
+    // 1. Eliminar eventos pasados con fecha definida
     await Event.deleteMany({
       $or: [
         { fechaEvento: { $lt: ahora } },
@@ -339,14 +355,38 @@ router.get('/events', async (req, res) => {
       ]
     });
 
+    // 2. Limpiar o migrar eventos antiguos/legacy que no tienen fecha calculada
+    const legacyEvents = await Event.find({ fechaEvento: null, fechaExpiracion: null });
+    for (const leg of legacyEvents) {
+      const resFecha = calcularFechaEvento(leg.dia, leg.hora, leg.createdAt ? new Date(leg.createdAt) : ahora, false);
+      if (resFecha.fechaEvento) {
+        if (resFecha.fechaEvento < ahora) {
+          await Event.deleteOne({ _id: leg._id });
+        } else {
+          await Event.updateOne({ _id: leg._id }, { fechaEvento: resFecha.fechaEvento });
+        }
+      } else if (resFecha.fechaExpiracion) {
+        if (resFecha.fechaExpiracion < ahora) {
+          await Event.deleteOne({ _id: leg._id });
+        } else {
+          await Event.updateOne({ _id: leg._id }, { fechaExpiracion: resFecha.fechaExpiracion });
+        }
+      } else {
+        // Evento sin fecha detectable: si se creó hace más de 7 días, considerarlo expirado
+        const createdMs = leg.createdAt ? new Date(leg.createdAt).getTime() : 0;
+        if (ahora.getTime() - createdMs > 7 * 24 * 60 * 60 * 1000) {
+          await Event.deleteOne({ _id: leg._id });
+        }
+      }
+    }
+
+    // 3. Obtener solo eventos vigentes (próximos)
     let eventos = await Event.find({
       $or: [
         // Eventos con fecha exacta que aún no han pasado
         { fechaEvento: { $gte: ahora } },
         // Eventos vagos con fecha de expiración que aún no ha pasado
         { fechaEvento: null, fechaExpiracion: { $gte: ahora } },
-        // Eventos sin ninguna fecha (legacy / sin calcular) — mostrar siempre
-        { fechaEvento: null, fechaExpiracion: null },
       ]
     })
       .sort({ fechaEvento: 1 })
@@ -397,6 +437,7 @@ router.post('/events', async (req, res) => {
   try {
     const { 
       titulo, dia, diaNum, hora, autor, fuente, desc,
+      fechaEvento: clientFechaEvento,
       event_type, contact_method, notification_status, client_email, client_phone, client_name, personalized_message
     } = req.body;
     const finalTitulo = desc ? `${titulo} - ${desc}` : titulo;
@@ -413,15 +454,26 @@ router.post('/events', async (req, res) => {
       }
       await evento.save();
     } else {
-      // Calcular fechaEvento para eventos manuales
       let fechaEvento = null;
-      if (diaNum) {
-        const hoy = new Date();
+      let fechaExpiracion = null;
+      const hoy = new Date();
+
+      if (clientFechaEvento) {
+        fechaEvento = new Date(clientFechaEvento);
+        fechaEvento.setHours(23, 59, 59, 999);
+      } else if (dia) {
+        const resFecha = calcularFechaEvento(dia, hora, hoy, true);
+        fechaEvento = resFecha.fechaEvento;
+        fechaExpiracion = resFecha.fechaExpiracion;
+      }
+
+      if (!fechaEvento && !fechaExpiracion && diaNum) {
         fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth(), diaNum, 23, 59, 59);
         if (fechaEvento < hoy) {
           fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth() + 1, diaNum, 23, 59, 59);
         }
       }
+
       evento = await Event.create({
         titulo: finalTitulo,
         dia: dia,
@@ -430,6 +482,7 @@ router.post('/events', async (req, res) => {
         autor: autor || 'Usuario',
         fuente: fuente || 'manual',
         fechaEvento,
+        fechaExpiracion,
         event_type: event_type || 'internal',
         contact_method: contact_method || 'none',
         notification_status: notification_status || 'none',

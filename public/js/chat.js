@@ -372,6 +372,8 @@ async function seleccionarCanal(id, nombre, descripcion = '', tipo = 'channel') 
   document.getElementById('chatChannelIcon').textContent = prefix;
   document.getElementById('chatInput').placeholder       = `Mensaje en ${prefix}${nombre}`;
   document.getElementById('chatTopic').textContent       = descripcion;
+  const btnMembers = document.getElementById('btnChannelMembers');
+  if (btnMembers) btnMembers.style.display = tipo === 'dm' ? 'none' : 'inline-flex';
 
   // Actualizar Welcome Banner
   const wHeading = document.getElementById('welcomeHeading');
@@ -576,7 +578,7 @@ document.getElementById('newChannelSubmit')?.addEventListener('click', async () 
   if (!name) return;
 
   try {
-    const myName = localStorage.getItem('slacia_user') || 'Anónimo';
+    const myName = localStorage.getItem('slacia_name') || localStorage.getItem('slacia_user') || 'Usuario';
     const r = await fetch('/api/channels', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -661,91 +663,172 @@ window.ChatModule = {
   actualizarMensaje,
 };
 
-// Lógica de gestión de miembros
-document.getElementById('memberCount')?.addEventListener('click', async () => {
+// ════════════════════════════════════════════════════════════════
+//  GESTIÓN DE MIEMBROS DE CANAL (Ver, Añadir, Expulsar)
+// ════════════════════════════════════════════════════════════════
+
+async function abrirModalMiembros() {
   if (typeof ChatModule === 'undefined') return;
-  if (ChatModule.getCurrentChannelType() === 'dm') return; // En DMs no gestionamos miembros así
+  if (ChatModule.getCurrentChannelType() === 'dm') return;
 
   const channelId = ChatModule.getCurrentChannelId();
   if (!channelId) return;
 
-  const myName = localStorage.getItem('slacia_user') || 'Anónimo';
+  const myName = localStorage.getItem('slacia_name') || localStorage.getItem('slacia_user') || 'Usuario';
+  const modal = document.getElementById('membersModal');
+  const list = document.getElementById('membersList');
+  const addSection = document.getElementById('addMemberSection');
+  const feedback = document.getElementById('addMemberFeedback');
+
+  if (feedback) feedback.style.display = 'none';
+  if (list) list.innerHTML = '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 12px 0;">Cargando miembros...</p>';
+  if (modal) modal.style.display = 'flex';
 
   try {
     const res = await fetch(`/api/channels/${channelId}/members`);
     const data = await res.json();
-    if (!data.ok) return alert('Error al cargar miembros');
+    if (!data.ok) {
+      if (list) list.innerHTML = '<p style="color: #E01E5A; font-size: 13px; text-align: center;">Error al cargar miembros.</p>';
+      return;
+    }
 
-    const isOwner = data.owner === myName;
-    const list = document.getElementById('membersList');
-    list.innerHTML = '';
-    
-    if (data.users && data.users.length > 0) {
-      data.users.forEach(u => {
+    // Es dueño si es el owner registrado, o si el owner es 'Anónimo' / no tiene owner (canal público para gestionar)
+    const isOwner = !data.owner || data.owner === 'Anónimo' || data.owner === myName;
+
+    if (list) list.innerHTML = '';
+
+    const users = (data.users && data.users.length > 0)
+      ? data.users
+      : (data.owner && data.owner !== 'Anónimo' ? [data.owner] : []);
+
+    if (users.length > 0 && list) {
+      users.forEach(u => {
         const div = document.createElement('div');
-        div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border-color); color: var(--text-main); font-size: 14px;';
-        
+        div.style.cssText = 'display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--border-color); color: var(--text-main); font-size: 14px;';
+
         const nameSpan = document.createElement('span');
-        nameSpan.textContent = u;
-        if (u === data.owner) {
-          nameSpan.innerHTML += ' <strong style="color: var(--text-muted); font-size: 11px;">(Creador)</strong>';
+        nameSpan.style.cssText = 'display: flex; align-items: center; gap: 8px;';
+        const color = colorDeAutor(u);
+        nameSpan.innerHTML = `
+          <span style="width: 26px; height: 26px; border-radius: 4px; background: ${color}; color: white; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; flex-shrink: 0;">${iniciales(u)}</span>
+          <span style="font-weight: 500;">${escapeHtml(u)}</span>
+        `;
+
+        if (u === data.owner && data.owner !== 'Anónimo') {
+          nameSpan.innerHTML += ' <span style="background: rgba(18,100,163,0.1); color: var(--slack-primary); font-size: 11px; padding: 1px 6px; border-radius: 3px; font-weight: 600;">Creador</span>';
         }
         div.appendChild(nameSpan);
 
+        // Botón Expulsar: permitido si el usuario actual es owner y no se expulsa a sí mismo
         if (isOwner && u !== data.owner) {
           const btn = document.createElement('button');
           btn.textContent = 'Expulsar';
-          btn.style.cssText = 'background: rgba(224,30,90,0.1); color: #E01E5A; border: 1px solid #E01E5A; padding: 2px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold;';
+          btn.style.cssText = 'background: rgba(224,30,90,0.1); color: #E01E5A; border: 1px solid #E01E5A; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 12px; font-weight: bold; transition: background 0.2s;';
+          btn.onmouseover = () => btn.style.background = 'rgba(224,30,90,0.2)';
+          btn.onmouseout = () => btn.style.background = 'rgba(224,30,90,0.1)';
           btn.onclick = async () => {
-            const rmRes = await fetch(`/api/channels/${channelId}/members/${encodeURIComponent(u)}`, { method: 'DELETE' });
-            if (rmRes.ok) div.remove();
+            if (!confirm(`¿Deseas expulsar a "${u}" de este canal?`)) return;
+            btn.disabled = true;
+            try {
+              const rmRes = await fetch(`/api/channels/${channelId}/members/${encodeURIComponent(u)}`, { method: 'DELETE' });
+              const rmData = await rmRes.json();
+              if (rmData.ok) {
+                div.remove();
+                abrirModalMiembros(); // Recargar lista actualizada
+              } else {
+                alert(rmData.error || 'Error al expulsar miembro');
+                btn.disabled = false;
+              }
+            } catch (e) {
+              alert('Error de conexión');
+              btn.disabled = false;
+            }
           };
           div.appendChild(btn);
         }
         list.appendChild(div);
       });
-    } else {
-      list.innerHTML = '<p style="color: var(--text-muted); font-size: 13px;">Canal accesible por todos o sin dueños.</p>';
+    } else if (list) {
+      list.innerHTML = '<p style="color: var(--text-muted); font-size: 13px; text-align: center; padding: 8px 0;">Este canal no tiene miembros asignados aún (accesible por todos).</p>';
     }
 
-    const addSection = document.getElementById('addMemberSection');
-    if (isOwner) {
-      addSection.style.display = 'block';
-      const addBtn = document.getElementById('addMemberBtn');
-      
-      // Limpiar listeners antiguos usando cloneNode
-      const newBtn = addBtn.cloneNode(true);
-      addBtn.parentNode.replaceChild(newBtn, addBtn);
-      
-      newBtn.addEventListener('click', async () => {
+    // Sección de Añadir Miembro
+    if (addSection) {
+      if (isOwner) {
+        addSection.style.display = 'block';
+        const addBtn = document.getElementById('addMemberBtn');
         const input = document.getElementById('addMemberInput');
-        const username = input.value.trim();
-        if (!username) return;
-        
-        const r = await fetch(`/api/channels/${channelId}/members`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ username })
-        });
-        if (r.ok) {
-          input.value = '';
-          document.getElementById('membersModal').style.display = 'none';
-          document.getElementById('memberCount').click(); // Reload
-        } else {
-          alert('Error al añadir miembro');
+        if (input) input.value = '';
+
+        const ejecutarAgregar = async () => {
+          const username = input?.value.trim();
+          if (!username) return;
+
+          if (addBtn) addBtn.disabled = true;
+          try {
+            const r = await fetch(`/api/channels/${channelId}/members`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ username })
+            });
+            const d = await r.json();
+            if (r.ok && d.ok) {
+              if (input) input.value = '';
+              if (feedback) {
+                feedback.textContent = `✅ "${username}" añadido exitosamente`;
+                feedback.style.color = '#2bac76';
+                feedback.style.display = 'block';
+                setTimeout(() => { if (feedback) feedback.style.display = 'none'; }, 3000);
+              }
+              abrirModalMiembros(); // Recargar vista de miembros
+            } else {
+              alert(d.error || 'Error al añadir miembro');
+            }
+          } catch (e) {
+            alert('Error de conexión al añadir miembro');
+          } finally {
+            if (addBtn) addBtn.disabled = false;
+          }
+        };
+
+        if (addBtn) {
+          const newBtn = addBtn.cloneNode(true);
+          addBtn.parentNode.replaceChild(newBtn, addBtn);
+          newBtn.addEventListener('click', ejecutarAgregar);
         }
-      });
-    } else {
-      addSection.style.display = 'none';
+
+        if (input) {
+          input.onkeydown = (e) => {
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              ejecutarAgregar();
+            }
+          };
+        }
+      } else {
+        addSection.style.display = 'none';
+      }
     }
 
-    document.getElementById('membersModal').style.display = 'flex';
   } catch (err) {
     console.error(err);
-    alert('No se pudo conectar a la API.');
+    if (list) list.innerHTML = '<p style="color: #E01E5A; font-size: 13px; text-align: center;">No se pudo conectar al servidor.</p>';
   }
-});
+}
 
-document.getElementById('closeMembersModal')?.addEventListener('click', () => {
-  document.getElementById('membersModal').style.display = 'none';
+function cerrarModalMiembros() {
+  const modal = document.getElementById('membersModal');
+  if (modal) modal.style.display = 'none';
+}
+
+// Listeners de apertura y cierre del modal de miembros
+document.getElementById('memberCount')?.addEventListener('click', abrirModalMiembros);
+document.getElementById('btnChannelMembers')?.addEventListener('click', abrirModalMiembros);
+document.getElementById('closeMembersModal')?.addEventListener('click', cerrarModalMiembros);
+document.getElementById('closeMembersModalX')?.addEventListener('click', cerrarModalMiembros);
+document.getElementById('membersModal')?.addEventListener('click', (e) => {
+  if (e.target.id === 'membersModal') cerrarModalMiembros();
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') cerrarModalMiembros();
 });

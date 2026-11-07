@@ -10,31 +10,29 @@ const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_URL     = 'https://openrouter.ai/api/v1/chat/completions';
 const AI_MODEL           = process.env.OPENROUTER_MODEL || 'meta-llama/llama-3.1-8b-instruct:free'; // modelo configurable
 
+const { parsearFechaEspanol, calcularFechaEvento } = require('./dateUtils');
+
 // ── Fallback Regex ────────────────────────────────────────────
-const PATRON_CITA = /\b(?:nos\s+vemos|quedamos|reuni[oó]n|junta|cita|llamada|videollamada|meet(?:ing)?|agend(?:ar)?|vemos|vernos|pasamos|revisamos|revisar|platicamos|hablamos|checar|chequemos)\b[^.!?]{0,80}\b(ma[nñ]ana|hoy|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|otra\s+semana|pr[oó]xima\s+semana|siguiente\s+semana|pr[oó]ximo\s+mes)\b(?:[^.!?]{0,40}\ba\s+las?\s+(\d{1,2}(?::\d{2})?)\s*(am|pm|hrs?|h|de\s+la\s+tarde|de\s+la\s+ma[nñ]ana)?\b)?/i;
+const PATRON_CITA = /\b(?:nos\s+vemos|quedamos|reuni[oó]n|junta|cita|llamada|videollamada|meet(?:ing)?|agend(?:ar)?|vemos|vernos|pasamos|revisamos|revisar|platicamos|hablamos|checar|chequemos)\b[^.!?]{0,80}\b(ma[nñ]ana|pasado\s+ma[nñ]ana|hoy|lunes|martes|mi[eé]rcoles|jueves|viernes|s[aá]bado|domingo|otra\s+semana|pr[oó]xima\s+semana|siguiente\s+semana|pr[oó]ximo\s+mes|\d{1,2}\s+de\s+(?:enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|setiembre|octubre|noviembre|diciembre)(?:\s+(?:de|del)?\s*\d{4})?|\d{1,2}[\/-]\d{1,2}(?:[\/-]\d{4})?|d[ií]a\s+\d{1,2})\b(?:[^.!?]{0,40}\ba\s+las?\s+(\d{1,2}(?::\d{2})?)\s*(am|pm|hrs?|h|de\s+la\s+tarde|de\s+la\s+ma[nñ]ana)?\b)?/i;
 
 function detectarCitaRegex(texto) {
   const match = texto.match(PATRON_CITA);
   if (!match) return null;
 
-  const diaOriginal = match[1].toLowerCase();
-  let dia  = diaOriginal.charAt(0).toUpperCase() + diaOriginal.slice(1);
-  let diaNum = null;
-
+  const diaOriginal = match[1].trim();
   const hoy = new Date();
-  if (diaOriginal === 'hoy') {
-    diaNum = hoy.getDate();
-  } else if (diaOriginal === 'mañana' || diaOriginal === 'manana') {
-    const manana = new Date(hoy);
-    manana.setDate(manana.getDate() + 1);
-    diaNum = manana.getDate();
-    dia = "Mañana";
-  } else if (diaOriginal.includes('semana')) {
-    dia = "La próxima semana";
-    diaNum = null;
-  } else if (diaOriginal.includes('mes')) {
-    dia = "El próximo mes";
-    diaNum = null;
+  const parsed = parsearFechaEspanol(diaOriginal, '', hoy, true);
+
+  let dia = diaOriginal.charAt(0).toUpperCase() + diaOriginal.slice(1);
+  let diaNum = parsed?.dia || null;
+  let mes = parsed?.mes !== undefined && parsed?.mes !== null ? parsed.mes : null;
+  let anio = parsed?.anio || null;
+  let fechaISO = null;
+
+  if (parsed && parsed.esExacta) {
+    const mStr = (parsed.mes + 1).toString().padStart(2, '0');
+    const dStr = parsed.dia.toString().padStart(2, '0');
+    fechaISO = `${parsed.anio}-${mStr}-${dStr}`;
   }
 
   let hora = "09:00 - 14:00 hrs";
@@ -45,15 +43,15 @@ function detectarCitaRegex(texto) {
     hora = match[2] + ' ' + suffix;
   }
 
-  return { dia, hora, diaNum };
+  return { dia, hora, diaNum, mes, anio, fechaISO };
 }
 
 // ── Detección con IA via OpenRouter ──────────────────────────
 
 /**
- * Analiza un mensaje con IA y retorna { detectado, dia, hora, titulo, diaNum } o null.
+ * Analiza un mensaje con IA y retorna { detectado, dia, hora, titulo, diaNum, mes, anio, fechaISO } o null.
  * @param {string} texto
- * @returns {Promise<{dia:string, hora:string, titulo:string, diaNum:number}|null>}
+ * @returns {Promise<{dia:string, hora:string, titulo:string, diaNum:number, mes:number, anio:number, fechaISO:string}|null>}
  */
 async function detectarCitaIA(texto) {
   if (!OPENROUTER_API_KEY) {
@@ -75,10 +73,11 @@ Reglas:
 1. Si el mensaje dice "mañana", debes usar la fecha correspondiente al día de mañana y su respectivo número de día en "diaNum".
 2. Si el mensaje menciona una fecha pero NO menciona una hora específica (por ejemplo "nos vemos el 21 de julio"), asume que es un evento de todo el día y asigna el horario por defecto "09:00 - 14:00 hrs" en el campo "hora".
 3. Considera intenciones de reunión encubiertas como "Revisamos los números", "Checamos los datos", "Hablamos de esto" como reuniones si mencionan un día y/o hora (ej. "el viernes a las 3 de la tarde").
-4. Si el mensaje menciona fechas vagas como "la otra semana", "la próxima semana", o "el próximo mes", DEBES registrarlo. Pon esa frase descriptiva en "dia" (ej. "La otra semana") y asigna "diaNum": null. Asume hora "Por definir" si no se especifica.
-5. Responde SOLO con un JSON válido en este formato exacto:
-{"detectado": true, "dia": "Mañana (o la fecha exacta/vaga)", "hora": "10:00 hrs", "titulo": "texto resumido del evento", "diaNum": 18}
-donde "diaNum" es el número de día del mes (1-31) numérico, o null si la fecha es vaga ("la otra semana").
+4. Si el mensaje menciona fechas vagas como "la otra semana", "la próxima semana", o "el próximo mes", DEBES registrarlo. Pon esa frase descriptiva en "dia" (ej. "La otra semana") y asigna "diaNum": null, "fechaISO": null. Asume hora "Por definir" si no se especifica.
+5. Si el mensaje menciona un mes o fecha específica (ej. "24 de julio", "15 de diciembre"), extrae el día, mes (1-12) y año correspondiente. Si el mes ya pasó en el año actual y se agendará a futuro, usa el año siguiente; si se especifica año (ej. 2026), respétalo.
+6. Responde SOLO con un JSON válido en este formato exacto:
+{"detectado": true, "dia": "24 de julio de 2026", "hora": "15:00 hrs", "titulo": "texto resumido del evento", "diaNum": 24, "mes": 7, "anio": 2026, "fechaISO": "2026-07-24"}
+donde "diaNum" es el número de día del mes (1-31) o null; "mes" es el número del mes (1-12) o null; "anio" es el año (ej. 2026) o null; y "fechaISO" es formato YYYY-MM-DD o null.
 Si NO hay ninguna cita o evento, responde SOLO:
 {"detectado": false}
 No escribas nada más, solo el JSON.`;
@@ -99,7 +98,7 @@ No escribas nada más, solo el JSON.`;
           { role: 'user',    content: texto },
         ],
         temperature: 0,
-        max_tokens:  80,
+        max_tokens:  90,
       }),
       signal: AbortSignal.timeout(6000), // 6 seg timeout
     });
@@ -115,11 +114,32 @@ No escribas nada más, solo el JSON.`;
 
     if (!parsed.detectado) return null;
 
+    let diaNum = parsed.diaNum || null;
+    let mes = parsed.mes !== undefined && parsed.mes !== null ? (parsed.mes - 1) : null;
+    let anio = parsed.anio || null;
+    let fechaISO = parsed.fechaISO || null;
+
+    // Si la IA no envió fechaISO o mes, intentar obtenerlos con el parser local
+    if (!fechaISO && parsed.dia) {
+      const p = parsearFechaEspanol(parsed.dia, parsed.hora || '', hoy, true);
+      if (p && p.esExacta) {
+        diaNum = diaNum || p.dia;
+        mes = mes !== null ? mes : p.mes;
+        anio = anio || p.anio;
+        const mStr = (p.mes + 1).toString().padStart(2, '0');
+        const dStr = p.dia.toString().padStart(2, '0');
+        fechaISO = `${p.anio}-${mStr}-${dStr}`;
+      }
+    }
+
     return {
-      dia:    parsed.dia    || 'Sin fecha',
-      hora:   parsed.hora   || 'Sin hora',
-      titulo: parsed.titulo || texto.slice(0, 80),
-      diaNum: parsed.diaNum || null,
+      dia:      parsed.dia    || 'Sin fecha',
+      hora:     parsed.hora   || 'Sin hora',
+      titulo:   parsed.titulo || texto.slice(0, 80),
+      diaNum,
+      mes,
+      anio,
+      fechaISO,
     };
 
   } catch (err) {
@@ -127,7 +147,7 @@ No escribas nada más, solo el JSON.`;
     // Fallback: Regex
     const cita = detectarCitaRegex(texto);
     if (!cita) return null;
-    return { ...cita, titulo: texto.slice(0, 80), diaNum: cita.diaNum || null };
+    return { ...cita, titulo: texto.slice(0, 80) };
   }
 }
 
@@ -272,4 +292,4 @@ ${transcript}`;
   }
 }
 
-module.exports = { detectarCitaIA, chatConBot, resumirConversacion };
+module.exports = { detectarCitaIA, detectarCitaRegex, chatConBot, resumirConversacion };

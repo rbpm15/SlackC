@@ -3,6 +3,7 @@
 const Message        = require('../models/Message');
 const Event          = require('../models/Event');
 const { detectarCitaIA } = require('../services/agendaAI');
+const { calcularFechaEvento } = require('../services/dateUtils');
 
 // ──────────────────────────────────────────────────────────────
 //  TRACKER DE USUARIOS ONLINE  { socketId → { nombre, channelId } }
@@ -175,16 +176,30 @@ function socketHandler(io) {
             let fechaExpiracion = null;
             const hoy = new Date();
 
-            if (cita.diaNum) {
-              // Fecha exacta: fin del día del evento
-              fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth(), cita.diaNum, 23, 59, 59);
-              // Si la fecha ya pasó en este mes, podría ser el mes siguiente
-              if (fechaEvento < hoy) {
-                fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth() + 1, cita.diaNum, 23, 59, 59);
+            if (cita.fechaISO) {
+              const [y, m, d] = cita.fechaISO.split('-').map(Number);
+              fechaEvento = new Date(y, m - 1, d, 23, 59, 59);
+            } else if (cita.dia) {
+              const res = calcularFechaEvento(cita.dia, cita.hora, hoy, true);
+              fechaEvento = res.fechaEvento;
+              fechaExpiracion = res.fechaExpiracion;
+            }
+
+            if (!fechaEvento && !fechaExpiracion) {
+              if (cita.diaNum) {
+                fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth(), cita.diaNum, 23, 59, 59);
+                if (fechaEvento < hoy) {
+                  fechaEvento = new Date(hoy.getFullYear(), hoy.getMonth() + 1, cita.diaNum, 23, 59, 59);
+                }
+              } else {
+                fechaExpiracion = new Date(hoy.getTime() + 7 * 24 * 60 * 60 * 1000);
               }
-            } else {
-              // Fecha vaga ("la próxima semana", etc.) — expira en 7 días
-              fechaExpiracion = new Date(hoy.getTime() + 7 * 24 * 60 * 60 * 1000);
+            }
+
+            // Si la fecha ya pasó en el calendario, no registrarla como próximo evento
+            if (fechaEvento && fechaEvento < hoy) {
+              console.log('[Socket] Cita ignorada por corresponder a una fecha pasada:', cita.titulo, cita.dia);
+              return;
             }
 
             eventoDoc = await Event.create({

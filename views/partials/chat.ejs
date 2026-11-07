@@ -15,7 +15,12 @@
       <span class="chat-topic" id="chatTopic">Canal de comunicación general del equipo</span>
     </div>
     <div class="chat-header-right">
-      <span class="member-count" id="memberCount" style="cursor: pointer; padding: 2px 6px; border-radius: 4px;" title="Ver Miembros"></span>
+      <button class="header-action-btn" id="btnChannelMembers" title="Ver y gestionar miembros del canal" style="display: inline-flex; align-items: center; gap: 5px; font-size: 13px; font-weight: 600; padding: 4px 10px; border-radius: 6px; background: rgba(0,0,0,0.04); border: 1px solid var(--border-color); cursor: pointer; color: var(--text-main);">
+        <svg viewBox="0 0 20 20" fill="currentColor" width="16" height="16" style="color: var(--slack-primary);">
+          <path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z" />
+        </svg>
+        <span class="member-count" id="memberCount">Miembros</span>
+      </button>
       <span id="connectionStatus" class="connection-status">
         <span class="conn-dot online"></span>En línea
       </span>
@@ -164,24 +169,28 @@
 </main>
 
 <!-- Members Modal -->
-<div id="membersModal" class="sidebar-backdrop" style="z-index: 1000; display: none; align-items: center; justify-content: center; backdrop-filter: blur(4px); opacity: 1;">
-  <div class="name-modal-box" style="width: 100%; max-width: 400px; background: var(--bg-primary); border-radius: 8px; padding: 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);">
-    <h3 style="margin-bottom: 12px; font-size: 18px;">Miembros del Canal</h3>
+<div id="membersModal" class="name-modal-overlay" style="display: none; align-items: center; justify-content: center; z-index: 1000; pointer-events: auto;">
+  <div class="clean-modal-box anim-fade-up" style="width: 100%; max-width: 440px; pointer-events: auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+      <h3 style="margin: 0; font-size: 18px; font-weight: 700; color: var(--text-main);">Miembros del Canal</h3>
+      <button id="closeMembersModalX" style="background: none; border: none; font-size: 24px; cursor: pointer; color: var(--text-muted); line-height: 1; padding: 2px 6px;" title="Cerrar">×</button>
+    </div>
     
-    <div id="membersList" style="max-height: 200px; overflow-y: auto; margin-bottom: 16px;">
+    <div id="membersList" style="max-height: 220px; overflow-y: auto; margin-bottom: 16px;">
       <!-- JavaScript will inject members here -->
     </div>
 
     <div id="addMemberSection" style="display: none; border-top: 1px solid var(--border-color); padding-top: 16px; margin-bottom: 16px;">
-      <h4 style="font-size: 14px; margin-bottom: 8px;">Añadir Miembro</h4>
+      <h4 style="font-size: 14px; margin-bottom: 8px; font-weight: 600; color: var(--text-main);">Añadir Miembro</h4>
       <div style="display: flex; gap: 8px;">
-        <input type="text" id="addMemberInput" placeholder="Nombre de usuario" class="name-input" style="flex: 1;" />
-        <button id="addMemberBtn" style="background: var(--slack-purple-mid); color: white; border: none; padding: 0 12px; border-radius: 4px; cursor: pointer;">Añadir</button>
+        <input type="text" id="addMemberInput" placeholder="Nombre de usuario" class="clean-modal-input-line" style="flex: 1; border: 1px solid var(--border-color) !important; border-radius: 4px; padding: 6px 10px;" autocomplete="off" />
+        <button id="addMemberBtn" class="clean-modal-btn-submit" style="width: auto; padding: 6px 14px; font-size: 13px; margin: 0; cursor: pointer;">Añadir</button>
       </div>
+      <p id="addMemberFeedback" style="font-size: 12px; margin-top: 6px; display: none;"></p>
     </div>
 
     <div style="text-align: right;">
-      <button id="closeMembersModal" style="background: transparent; border: 1px solid var(--border-color); padding: 8px 16px; border-radius: 4px; color: var(--text-main); font-weight: bold; cursor: pointer;">Cerrar</button>
+      <button id="closeMembersModal" class="btn-cancel" style="background: transparent; border: 1px solid var(--border-color); padding: 8px 18px; border-radius: 4px; color: var(--text-main); font-weight: bold; cursor: pointer;">Cerrar</button>
     </div>
   </div>
 </div>

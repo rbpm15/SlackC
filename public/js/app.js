@@ -287,15 +287,188 @@ function actualizarEstadoConexion(online) {
 }
 
 /* ════════════════════════════════════════════════════════════════
-   INPUT
+   INPUT Y ARCHIVOS ADJUNTOS
 ════════════════════════════════════════════════════════════════ */
-const chatInputEl = document.getElementById('chatInput');
-const sendBtnEl   = document.getElementById('sendBtn');
+const chatInputEl         = document.getElementById('chatInput');
+const sendBtnEl           = document.getElementById('sendBtn');
+const fileInputEl         = document.getElementById('fileInput');
+const btnAttachEl         = document.getElementById('btnAttach');
+const attachmentPreviewEl = document.getElementById('attachmentPreview');
+
 const _pendingIds = new Set();
 let _mentionActive = false; // declared early for keydown handler
 
+let _currentAttachment = null;
+let _isUploadingAttachment = false;
+
+function actualizarEstadoBotonEnviar() {
+  const tieneTexto = chatInputEl.value.trim().length > 0;
+  const tieneArchivo = Boolean(_currentAttachment);
+  sendBtnEl.disabled = (!tieneTexto && !tieneArchivo) || _isUploadingAttachment;
+}
+
+function formatBytes(bytes) {
+  if (!bytes || isNaN(bytes)) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function escapeHtml(str = '') {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+btnAttachEl?.addEventListener('click', () => {
+  if (fileInputEl) fileInputEl.click();
+});
+
+fileInputEl?.addEventListener('change', () => {
+  if (fileInputEl.files && fileInputEl.files[0]) {
+    procesarArchivoAdjunto(fileInputEl.files[0]);
+  }
+});
+
+// Soporte para pegar imágenes desde el portapapeles (Ctrl+V)
+window.addEventListener('paste', (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].kind === 'file') {
+      const file = items[i].getAsFile();
+      if (file) {
+        procesarArchivoAdjunto(file);
+        break;
+      }
+    }
+  }
+});
+
+// Soporte Drag and Drop
+const inputAreaEl = document.querySelector('.input-area');
+if (inputAreaEl) {
+  ['dragenter', 'dragover'].forEach(eventName => {
+    inputAreaEl.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      inputAreaEl.classList.add('drag-over');
+    }, false);
+  });
+
+  ['dragleave', 'drop'].forEach(eventName => {
+    inputAreaEl.addEventListener(eventName, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      inputAreaEl.classList.remove('drag-over');
+    }, false);
+  });
+
+  inputAreaEl.addEventListener('drop', (e) => {
+    const files = e.dataTransfer?.files;
+    if (files && files[0]) {
+      procesarArchivoAdjunto(files[0]);
+    }
+  });
+}
+
+function cancelarArchivoAdjunto() {
+  _currentAttachment = null;
+  _isUploadingAttachment = false;
+  if (fileInputEl) fileInputEl.value = '';
+  if (attachmentPreviewEl) {
+    attachmentPreviewEl.innerHTML = '';
+    attachmentPreviewEl.style.display = 'none';
+  }
+  actualizarEstadoBotonEnviar();
+}
+
+async function procesarArchivoAdjunto(file) {
+  if (!file) return;
+
+  // Límite de 30MB
+  if (file.size > 30 * 1024 * 1024) {
+    alert('El archivo supera el límite máximo permitido de 30 MB.');
+    return;
+  }
+
+  _isUploadingAttachment = true;
+  actualizarEstadoBotonEnviar();
+
+  const isImage = file.type.startsWith('image/');
+  let thumbHtml = '';
+  if (isImage) {
+    const tempUrl = URL.createObjectURL(file);
+    thumbHtml = `<img src="${tempUrl}" class="attachment-preview-thumb" alt="Preview" />`;
+  } else {
+    let fileIcon = '📄';
+    if (file.type.includes('pdf')) fileIcon = '📕';
+    else if (file.type.includes('zip') || file.type.includes('tar') || file.type.includes('rar')) fileIcon = '📦';
+    else if (file.type.includes('word') || file.type.includes('officedocument.word')) fileIcon = '📝';
+    else if (file.type.includes('sheet') || file.type.includes('excel')) fileIcon = '📊';
+    thumbHtml = `<div class="attachment-preview-icon">${fileIcon}</div>`;
+  }
+
+  const tamanoStr = formatBytes(file.size);
+
+  if (attachmentPreviewEl) {
+    attachmentPreviewEl.style.display = 'flex';
+    attachmentPreviewEl.innerHTML = `
+      <div class="attachment-preview-card">
+        ${thumbHtml}
+        <div class="attachment-preview-info">
+          <span class="attachment-preview-name" title="${escapeHtml(file.name)}">${escapeHtml(file.name)}</span>
+          <span class="attachment-preview-meta">
+            <span>${tamanoStr}</span>
+            <span class="attachment-preview-status uploading" id="uploadStatusText">⏳ Subiendo...</span>
+          </span>
+        </div>
+        <button type="button" class="attachment-preview-remove" id="btnCancelAttach" title="Quitar archivo">✕</button>
+      </div>
+    `;
+
+    document.getElementById('btnCancelAttach')?.addEventListener('click', cancelarArchivoAdjunto);
+  }
+
+  try {
+    const formData = new FormData();
+    formData.append('archivo', file);
+
+    const res = await fetch('/api/upload', {
+      method: 'POST',
+      body: formData,
+    });
+    const data = await res.json();
+
+    if (data.ok && data.file) {
+      _currentAttachment = data.file;
+      _isUploadingAttachment = false;
+      const statusEl = document.getElementById('uploadStatusText');
+      if (statusEl) {
+        statusEl.className = 'attachment-preview-status ready';
+        statusEl.textContent = '✓ Listo para enviar';
+      }
+      actualizarEstadoBotonEnviar();
+    } else {
+      throw new Error(data.error || 'Error subiendo archivo');
+    }
+  } catch (err) {
+    console.error('[Upload] Error:', err);
+    _isUploadingAttachment = false;
+    const statusEl = document.getElementById('uploadStatusText');
+    if (statusEl) {
+      statusEl.className = 'attachment-preview-status error';
+      statusEl.textContent = '⚠️ Error';
+    }
+    alert('No se pudo subir el archivo: ' + err.message);
+    cancelarArchivoAdjunto();
+  }
+}
+
 chatInputEl.addEventListener('input', () => {
-  sendBtnEl.disabled = chatInputEl.value.trim().length === 0;
+  actualizarEstadoBotonEnviar();
   chatInputEl.style.height = 'auto';
   chatInputEl.style.height = Math.min(chatInputEl.scrollHeight, 160) + 'px';
 
@@ -321,7 +494,7 @@ function applyFormatting(prefix, suffix) {
   chatInputEl.selectionStart = start + prefix.length;
   chatInputEl.selectionEnd = end + prefix.length;
   chatInputEl.focus();
-  sendBtnEl.disabled = chatInputEl.value.trim().length === 0;
+  actualizarEstadoBotonEnviar();
 }
 
 document.getElementById('btnFormatBold')?.addEventListener('click', () => applyFormatting('*', '*'));
@@ -493,7 +666,7 @@ function insertMention(username) {
   chatInputEl.selectionEnd = newPos;
   chatInputEl.focus();
 
-  sendBtnEl.disabled = chatInputEl.value.trim().length === 0;
+  actualizarEstadoBotonEnviar();
 
   // Cerrar dropdown
   const dropdown = document.getElementById('mentionDropdown');
@@ -576,8 +749,14 @@ async function enviarMensaje() {
   const texto       = chatInputEl.value.trim();
   const channelId   = ChatModule.getCurrentChannelId();
   const channelType = ChatModule.getCurrentChannelType();
+  const archivo     = _currentAttachment ? { ..._currentAttachment } : null;
 
-  if (!texto || !channelId) return;
+  if ((!texto && !archivo) || !channelId) return;
+
+  if (_isUploadingAttachment) {
+    alert('Por favor espera a que el archivo termine de subirse antes de enviar.');
+    return;
+  }
 
   const tmpId = `tmp_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`;
   _pendingIds.add(tmpId);
@@ -587,13 +766,15 @@ async function enviarMensaje() {
     id:        tmpId,
     autor:     myName,
     texto,
+    archivo,
     createdAt: new Date().toISOString(),
     isOwn:     true,
   }, true);
 
   chatInputEl.value        = '';
   chatInputEl.style.height = 'auto';
-  sendBtnEl.disabled       = true;
+  cancelarArchivoAdjunto();
+  actualizarEstadoBotonEnviar();
 
   if (window.SyncManager && !SyncManager.isOnline()) {
     // Sin red: encolar para sincronizar al reconectar
@@ -601,14 +782,14 @@ async function enviarMensaje() {
       await OfflineDB.addToPendingQueue({
         type: 'send_message',
         tmpId,
-        payload: { channelId, autor: myName, texto, tmpId, channelType },
+        payload: { channelId, autor: myName, texto, archivo, tmpId, channelType },
       });
     }
     SyncManager.updateUI('offline');
     console.log('[App] Mensaje encolado offline:', tmpId);
   } else {
     // Con red: emitir por socket normalmente
-    socket.emit('nuevo_mensaje', { texto, autor: myName, tmpId, channelId });
+    socket.emit('nuevo_mensaje', { texto, archivo, autor: myName, tmpId, channelId });
   }
 }
 

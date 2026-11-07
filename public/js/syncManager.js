@@ -142,13 +142,14 @@ const SyncManager = (() => {
 
         // ── Enviar mensaje ───────────────────────────────
         case 'send_message': {
-          const { channelId, autor, texto, tmpId, channelType } = item.payload;
+          const { channelId, autor, texto, archivo, tmpId, channelType } = item.payload;
           // Usamos el socket si está disponible y conectado
           if (_socket && _socket.connected) {
-            _socket.emit('mensaje', {
+            _socket.emit('nuevo_mensaje', {
               channelId,
               autor,
               texto,
+              archivo,
               tmpId,
               channelType: channelType || 'channel',
             });
@@ -158,7 +159,7 @@ const SyncManager = (() => {
           const res = await fetch('/api/messages', {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ channelId, autor, texto, tmpId }),
+            body:    JSON.stringify({ channelId, autor, texto, archivo, tmpId }),
           });
           return res.ok;
         }

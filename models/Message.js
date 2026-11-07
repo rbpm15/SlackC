@@ -6,9 +6,15 @@ const MessageSchema = new mongoose.Schema(
   {
     texto: {
       type: String,
-      required: [true, 'El texto del mensaje es obligatorio.'],
       trim: true,
+      default: '',
       maxlength: [2000, 'El mensaje no puede superar 2000 caracteres.'],
+    },
+    archivo: {
+      url:      { type: String, default: null },
+      nombre:   { type: String, default: null },
+      mimetype: { type: String, default: null },
+      tamano:   { type: Number, default: 0 },
     },
     // Nombre de quien envió el mensaje
     autor: {

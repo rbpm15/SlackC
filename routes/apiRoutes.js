@@ -1,6 +1,9 @@
 'use strict';
 
 const { Router }    = require('express');
+const path          = require('path');
+const fs            = require('fs');
+const multer        = require('multer');
 const Channel       = require('../models/Channel');
 const Message       = require('../models/Message');
 const Event         = require('../models/Event');
@@ -280,6 +283,90 @@ router.get('/messages', async (req, res) => {
   } catch (err) {
     console.error('[API] GET /messages:', err.message);
     res.status(500).json({ ok: false, error: 'Error obteniendo mensajes.' });
+  }
+});
+
+// POST /api/messages — enviar mensaje vía REST (fallback / offline sync)
+router.post('/messages', async (req, res) => {
+  try {
+    const { channelId, autor, texto, archivo, tmpId } = req.body;
+    if ((!texto && !archivo) || !channelId) {
+      return res.status(400).json({ ok: false, error: 'Texto o archivo y channelId son requeridos.' });
+    }
+
+    const msg = await Message.create({
+      channelId,
+      autor: autor || 'Anónimo',
+      texto: texto || '',
+      archivo: archivo || null,
+      tmpId: tmpId || '',
+      tipo: 'usuario',
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(channelId).emit('mensaje_recibido', {
+        _id: msg._id.toString(),
+        tmpId: msg.tmpId,
+        autor: msg.autor,
+        texto: msg.texto,
+        archivo: msg.archivo,
+        channelId: msg.channelId.toString(),
+        tieneEvento: false,
+        createdAt: msg.createdAt,
+      });
+    }
+
+    res.json({ ok: true, data: msg });
+  } catch (err) {
+    console.error('[API] POST /messages:', err.message);
+    res.status(500).json({ ok: false, error: 'Error guardando mensaje.' });
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+//  SUBIDA DE ARCHIVOS / ADJUNTOS
+// ══════════════════════════════════════════════════════════════
+const uploadsDir = path.join(__dirname, '..', 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  fs.mkdirSync(uploadsDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, uploadsDir);
+  },
+  filename: function (req, file, cb) {
+    const ext = path.extname(file.originalname);
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const baseName = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9_\-]/g, '_').slice(0, 50);
+    cb(null, `${uniqueSuffix}_${baseName}${ext}`);
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 30 * 1024 * 1024 } // 30MB
+});
+
+// POST /api/upload — subir archivo adjunto
+router.post('/upload', upload.single('archivo'), (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ ok: false, error: 'No se subió ningún archivo.' });
+    }
+
+    const fileData = {
+      url: `/uploads/${req.file.filename}`,
+      nombre: req.file.originalname,
+      mimetype: req.file.mimetype,
+      tamano: req.file.size
+    };
+
+    res.json({ ok: true, file: fileData });
+  } catch (err) {
+    console.error('[API] Error en subida de archivo:', err.message);
+    res.status(500).json({ ok: false, error: 'Error procesando archivo adjunto.' });
   }
 });
 

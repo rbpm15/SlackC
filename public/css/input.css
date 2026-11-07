@@ -188,3 +188,107 @@
   background: rgba(37, 99, 235, 0.25);
 }
 
+/* ── Attachment Preview Area ────────────────────────────────────── */
+.attachment-preview-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background: var(--bg-secondary, #f8f9fa);
+  border-left: 1px solid var(--chat-border);
+  border-right: 1px solid var(--chat-border);
+  border-top: 1px dashed var(--border-color);
+  animation: animFadeUp 0.15s ease-out;
+}
+
+.attachment-preview-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  background: var(--bg-primary, #ffffff);
+  border: 1px solid var(--border-color, #e2e8f0);
+  border-radius: 8px;
+  max-width: 100%;
+  position: relative;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.attachment-preview-thumb {
+  width: 44px;
+  height: 44px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.attachment-preview-icon {
+  font-size: 28px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg-secondary, #f1f5f9);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.attachment-preview-info {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  max-width: 240px;
+}
+
+.attachment-preview-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.attachment-preview-meta {
+  font-size: 11px;
+  color: var(--text-light);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.attachment-preview-status {
+  font-weight: 500;
+}
+.attachment-preview-status.uploading { color: #d97706; }
+.attachment-preview-status.ready { color: #16a34a; }
+.attachment-preview-status.error { color: #dc2626; }
+
+.attachment-preview-remove {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: 4px 6px;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 4px;
+  margin-left: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s;
+}
+.attachment-preview-remove:hover {
+  background: rgba(220, 38, 38, 0.1);
+  color: #dc2626;
+}
+
+.drag-over {
+  outline: 2px dashed #2563EB !important;
+  outline-offset: -2px;
+  background-color: rgba(37, 99, 235, 0.04) !important;
+}
+

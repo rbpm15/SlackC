@@ -75,6 +75,9 @@
 
   <!-- Input area -->
   <div class="input-area">
+    <!-- Hidden file input for attachments -->
+    <input type="file" id="fileInput" style="display: none;" />
+
     <div class="input-toolbar">
       <button class="toolbar-btn" title="Negrita" id="btnFormatBold"><strong>B</strong></button>
       <button class="toolbar-btn" title="Cursiva" id="btnFormatItalic"><em>i</em></button>
@@ -85,7 +88,7 @@
         </svg>
       </button>
       <span class="toolbar-divider"></span>
-      <button class="toolbar-btn" title="Adjuntar archivo" id="btnAttach">
+      <button class="toolbar-btn" title="Adjuntar archivo" id="btnAttach" type="button">
         <svg viewBox="0 0 20 20" fill="currentColor" width="14" height="14">
           <path fill-rule="evenodd"
             d="M8 4a3 3 0 00-3 3v4a5 5 0 0010 0V7a1 1 0 112 0v4a7 7 0 11-14 0V7a5 5 0 0110 0v4a3 3 0 11-6 0V7a1 1 0 012 0v4a1 1 0 102 0V7a3 3 0 00-3-3z" />
@@ -152,6 +155,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Attachment Preview Area -->
+    <div id="attachmentPreview" class="attachment-preview-area" style="display:none;"></div>
 
     <div class="input-box-wrap">
       <!-- @ Mention Dropdown -->

@@ -90,8 +90,9 @@ function socketHandler(io) {
       const autor     = (payload?.autor     || 'Anónimo').trim().slice(0, 40);
       const tmpId     = (payload?.tmpId     || '').toString();
       const channelId = (payload?.channelId || '').toString();
+      const archivo   = payload?.archivo   || null;
 
-      if (!texto || texto.length > 2000 || !channelId) {
+      if ((!texto && !archivo) || (texto && texto.length > 2000) || !channelId) {
         socket.emit('error_servidor', { error: 'Payload inválido.' });
         return;
       }
@@ -100,6 +101,7 @@ function socketHandler(io) {
         // 1. Guardar mensaje
         const msgDoc = await Message.create({
           texto,
+          archivo,
           autor,
           socketId:  socket.id,
           tmpId,
@@ -115,6 +117,7 @@ function socketHandler(io) {
           socketId:   socket.id,
           autor,
           texto,
+          archivo,
           channelId,
           tieneEvento: false,
           createdAt:  msgDoc.createdAt,
@@ -129,6 +132,8 @@ function socketHandler(io) {
             checkChannel = await ChannelObj.findById(channelId);
           }
           
+          const notifTexto = texto || `📎 Archivo adjunto: ${archivo?.nombre || 'Archivo'}`;
+
           if (checkChannel && checkChannel.isDirectMessage) {
             // Es un DM. Notificar solo a los usuarios implicados
             for (const [sId, info] of usuariosOnline.entries()) {
@@ -137,7 +142,7 @@ function socketHandler(io) {
                   channelId,
                   autor,
                   isDirectMessage: true,
-                  texto
+                  texto: notifTexto
                 });
               }
             }
@@ -147,7 +152,7 @@ function socketHandler(io) {
               channelId,
               autor,
               isDirectMessage: false,
-              texto
+              texto: notifTexto
             });
           }
         } catch (err) {

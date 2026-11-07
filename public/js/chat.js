@@ -68,6 +68,13 @@ function formatHour(iso) {
 function iniciales(nombre = '') {
   return nombre.split(' ').slice(0, 2).map(p => p[0] || '').join('').toUpperCase() || '?';
 }
+function formatBytes(bytes) {
+  if (!bytes || isNaN(bytes)) return '';
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
 function formatDateDivider(dateObj) {
   const today = new Date();
   const msgDate = new Date(dateObj);
@@ -112,7 +119,58 @@ function renderizarMensaje(msg, animado = true) {
   const color   = msg.isOwn ? '#1264A3' : colorDeAutor(msg.autor);
   const horaStr = formatHour(msg.createdAt);
 
-  const textoHTML = msg.isDeleted ? `<em style="color:#999;">Mensaje eliminado</em>` : parseMarkdown(escapeHtml(msg.texto));
+  const textoHTML = msg.isDeleted ? `<em style="color:#999;">Mensaje eliminado</em>` : (msg.texto ? parseMarkdown(escapeHtml(msg.texto)) : '');
+
+  let archivoHTML = '';
+  if (msg.archivo && msg.archivo.url) {
+    const url = msg.archivo.url;
+    const nombre = msg.archivo.nombre || 'Archivo';
+    const mimetype = msg.archivo.mimetype || '';
+    const tamanoStr = formatBytes(msg.archivo.tamano);
+
+    if (mimetype.startsWith('image/')) {
+      archivoHTML = `
+        <div class="msg-attachment msg-attachment-image">
+          <a href="${url}" target="_blank" rel="noopener noreferrer" title="Ver imagen completa: ${escapeHtml(nombre)}">
+            <img src="${url}" alt="${escapeHtml(nombre)}" class="msg-image-preview" loading="lazy" />
+          </a>
+        </div>
+      `;
+    } else if (mimetype.startsWith('video/')) {
+      archivoHTML = `
+        <div class="msg-attachment msg-attachment-video">
+          <video src="${url}" controls class="msg-video-preview" style="max-width: 360px; max-height: 240px; border-radius: 8px; margin-top: 6px;"></video>
+        </div>
+      `;
+    } else if (mimetype.startsWith('audio/')) {
+      archivoHTML = `
+        <div class="msg-attachment msg-attachment-audio" style="margin-top: 6px;">
+          <audio src="${url}" controls style="max-width: 300px; display: block;"></audio>
+          <div style="font-size: 11px; color: var(--text-light); margin-top: 3px;">${escapeHtml(nombre)} (${tamanoStr})</div>
+        </div>
+      `;
+    } else {
+      let icon = '📄';
+      if (mimetype.includes('pdf')) icon = '📕';
+      else if (mimetype.includes('zip') || mimetype.includes('tar') || mimetype.includes('rar') || mimetype.includes('compressed')) icon = '📦';
+      else if (mimetype.includes('word') || mimetype.includes('officedocument.word')) icon = '📝';
+      else if (mimetype.includes('sheet') || mimetype.includes('excel')) icon = '📊';
+      else if (mimetype.includes('text') || mimetype.includes('javascript') || mimetype.includes('json')) icon = '📜';
+
+      archivoHTML = `
+        <div class="msg-attachment msg-attachment-file">
+          <a href="${url}" download="${escapeHtml(nombre)}" class="file-attachment-card" target="_blank" rel="noopener noreferrer">
+            <span class="file-icon">${icon}</span>
+            <div class="file-info">
+              <span class="file-name" title="${escapeHtml(nombre)}">${escapeHtml(nombre)}</span>
+              <span class="file-size">${tamanoStr}</span>
+            </div>
+            <span class="file-download-btn" title="Descargar">⬇️</span>
+          </a>
+        </div>
+      `;
+    }
+  }
 
   let reactionsHTML = '';
   if (msg.reactions && msg.reactions.length > 0) {
@@ -143,7 +201,8 @@ function renderizarMensaje(msg, animado = true) {
           ${msg.isOwn ? '<span class="own-badge">Tú</span>' : ''}
           <span class="msg-time">${horaStr}</span>
         </div>` : `<span class="msg-time grouped-time">${horaStr}</span>`}
-      <div class="msg-text">${textoHTML}</div>
+      ${textoHTML ? `<div class="msg-text">${textoHTML}</div>` : ''}
+      ${archivoHTML}
       ${reactionsHTML}
     </div>
     <div class="msg-actions">
@@ -642,6 +701,7 @@ window.ChatModule = {
       id:        m._id || m.id,
       autor:     m.autor || 'Anónimo',
       texto:     m.texto,
+      archivo:   m.archivo,
       createdAt: m.createdAt,
       isOwn:     m.autor === myName,
       isDeleted: m.isDeleted,
